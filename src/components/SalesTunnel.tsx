@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ProductDetail from './ProductDetail';
 
 type Slide = 'types' | 'products' | 'variants';
 
@@ -120,22 +121,8 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             animate="visible"
             exit="exit"
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {selectedProduct.variants.map((variant: any) => (
-              <div
-                key={variant.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 shadow-lg"
-              >
-                <h2 className="text-xl font-semibold text-gray-800">{variant.title}</h2>
-                <p className="text-gray-600 mt-2">{variant.price} €</p>
-                <button
-                  className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Sélectionner
-                </button>
-              </div>
-            ))}
+            <ProductDetail product={selectedProduct} />
           </motion.div>
         )}
       </AnimatePresence>
