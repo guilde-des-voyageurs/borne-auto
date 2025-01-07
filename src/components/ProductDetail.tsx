@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getDefaultImageByProduct } from '../constants/images';
 
 interface Variant {
   id: string;
@@ -15,6 +16,7 @@ interface ProductDetailProps {
   product: {
     id: string;
     title: string;
+    product_type: string;
     images: Array<{
       id: string;
       src: string;
@@ -30,13 +32,15 @@ interface ProductDetailProps {
 export default function ProductDetail({ product }: ProductDetailProps) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [currentImage, setCurrentImage] = useState(product.images[0]?.src);
+  const [currentImage, setCurrentImage] = useState<string>(
+    getDefaultImageByProduct(product.title, product.product_type)
+  );
 
   // Extraire les options uniques
   const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
   const sizes = Array.from(new Set(product.variants.map(v => v.option2).filter(Boolean)));
 
-  // Trouver la variante correspondante et mettre à jour l'image
+  // Mettre à jour l'image en fonction de la sélection
   useEffect(() => {
     if (selectedColor) {
       const variantWithColor = product.variants.find(v => v.option1 === selectedColor);
@@ -46,11 +50,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           setCurrentImage(image.src);
         }
       }
+    } else {
+      setCurrentImage(getDefaultImageByProduct(product.title, product.product_type));
     }
-  }, [selectedColor, product.variants, product.images]);
+  }, [selectedColor, product.variants, product.images, product.title, product.product_type]);
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+    <div className="max-w-4xl mx-auto bg-[#555] rounded-lg shadow-lg p-8 text-white">
       {/* Image du produit */}
       <div className="mb-8 flex justify-center items-center h-96">
         <img
@@ -61,7 +67,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       </div>
 
       {/* Titre du produit */}
-      <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
+      <h2 className="text-3xl font-bold text-center mb-8">
         {product.title}
       </h2>
 
@@ -76,8 +82,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 onClick={() => setSelectedColor(color)}
                 className={`px-6 py-3 rounded-lg border-2 transition-all ${
                   selectedColor === color
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-blue-200'
+                    ? 'border-blue-400 bg-blue-900'
+                    : 'border-gray-400 hover:border-blue-400'
                 }`}
               >
                 {color}
@@ -98,8 +104,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 onClick={() => setSelectedSize(size)}
                 className={`px-6 py-3 rounded-lg border-2 transition-all ${
                   selectedSize === size
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-blue-200'
+                    ? 'border-blue-400 bg-blue-900'
+                    : 'border-gray-400 hover:border-blue-400'
                 }`}
               >
                 {size}
@@ -114,7 +120,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         className={`w-full py-4 rounded-lg text-white text-lg font-semibold transition-colors ${
           selectedColor && selectedSize
             ? 'bg-blue-600 hover:bg-blue-700'
-            : 'bg-gray-400 cursor-not-allowed'
+            : 'bg-gray-600 cursor-not-allowed'
         }`}
         disabled={!selectedColor || !selectedSize}
       >

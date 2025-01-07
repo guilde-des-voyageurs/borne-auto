@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductDetail from './ProductDetail';
+import { getDefaultImageByType, getDefaultImageByProduct } from '../constants/images';
 
 type Slide = 'types' | 'products' | 'variants';
 
@@ -11,9 +12,14 @@ interface SalesTunnelProps {
 }
 
 export default function SalesTunnel({ products }: SalesTunnelProps) {
+  const [mounted, setMounted] = useState(false);
   const [currentSlide, setCurrentSlide] = useState<Slide>('types');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Extraire les types uniques des produits
   const productTypes = Array.from(new Set(products.map(product => product.product_type)));
@@ -47,6 +53,10 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     exit: { opacity: 0 }
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto p-8">
       {currentSlide !== 'types' && (
@@ -73,9 +83,16 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
               <button
                 key={type}
                 onClick={() => handleTypeSelect(type)}
-                className="p-6 bg-white border border-gray-200 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                className="p-6 bg-[#555] border border-gray-600 rounded-lg shadow-lg hover:shadow-xl transition-shadow text-white"
               >
-                <h2 className="text-xl font-semibold text-gray-800">{type || 'Sans catégorie'}</h2>
+                <div className="flex flex-col items-center">
+                  <img
+                    src={getDefaultImageByType(type)}
+                    alt={type}
+                    className="w-48 h-48 object-contain mb-4"
+                  />
+                  <h2 className="text-xl font-semibold">{type || 'Sans catégorie'}</h2>
+                </div>
               </button>
             ))}
           </motion.div>
@@ -97,17 +114,15 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
                 <button
                   key={product.id}
                   onClick={() => handleProductSelect(product)}
-                  className="bg-white border border-gray-200 rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow text-left"
+                  className="bg-[#555] border border-gray-600 rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow text-left text-white"
                 >
-                  {product.images[0] && (
-                    <img
-                      src={product.images[0].src}
-                      alt={product.title}
-                      className="w-full h-48 object-cover rounded-md mb-4"
-                    />
-                  )}
-                  <h2 className="text-xl font-semibold text-gray-800">{product.title}</h2>
-                  <p className="text-gray-600 mt-2">{product.variants[0].price} €</p>
+                  <img
+                    src={getDefaultImageByProduct(product.title, product.product_type)}
+                    alt={product.title}
+                    className="w-full h-48 object-contain rounded-md mb-4"
+                  />
+                  <h2 className="text-xl font-semibold">{product.title}</h2>
+                  <p className="text-gray-300 mt-2">{product.variants[0].price} €</p>
                 </button>
               ))}
           </motion.div>
