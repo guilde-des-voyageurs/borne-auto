@@ -1,5 +1,89 @@
 import { NextResponse } from 'next/server';
 
+async function findOrUpdateCustomer(customer: any) {
+  try {
+    // Rechercher le client par email
+    const searchResponse = await fetch(
+      `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/customers/search.json?query=email:${customer.email}`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!searchResponse.ok) {
+      throw new Error('Error searching for customer');
+    }
+
+    const searchData = await searchResponse.json();
+    let customerId;
+
+    if (searchData.customers && searchData.customers.length > 0) {
+      // Mettre à jour le client existant
+      const existingCustomer = searchData.customers[0];
+      customerId = existingCustomer.id;
+
+      const updateResponse = await fetch(
+        `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/customers/${customerId}.json`,
+        {
+          method: 'PUT',
+          headers: {
+            'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customer: {
+              id: customerId,
+              first_name: customer.first_name,
+              last_name: customer.last_name,
+              email: customer.email,
+              phone: customer.phone
+            }
+          })
+        }
+      );
+
+      if (!updateResponse.ok) {
+        throw new Error('Error updating customer');
+      }
+
+      return customerId;
+    } else {
+      // Créer un nouveau client
+      const createResponse = await fetch(
+        `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/customers.json`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customer: {
+              first_name: customer.first_name,
+              last_name: customer.last_name,
+              email: customer.email,
+              phone: customer.phone
+            }
+          })
+        }
+      );
+
+      if (!createResponse.ok) {
+        throw new Error('Error creating customer');
+      }
+
+      const createData = await createResponse.json();
+      return createData.customer.id;
+    }
+  } catch (error) {
+    console.error('Error in findOrUpdateCustomer:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -11,7 +95,6 @@ export async function POST(request: Request) {
 
     // Convertir les items du panier en format Shopify
     const line_items = Object.entries(items).map(([variantId, item]: [string, any]) => {
-      // Extraire uniquement l'ID numérique de la variante
       const numericId = variantId.split('/').pop()?.replace('ProductVariant/', '') || '';
       console.log('Conversion variantId:', { original: variantId, numericId });
       
@@ -21,7 +104,15 @@ export async function POST(request: Request) {
       };
     });
 
-    console.log('Line items formatés:', line_items);
+    // Trouver ou créer le client
+    const customerData = {
+      first_name: customer.firstName,
+      last_name: customer.lastName,
+      email: customer.email,
+      phone: customer.phone
+    };
+
+    const customerId = await findOrUpdateCustomer(customerData);
 
     const draftOrderData = {
       draft_order: {
@@ -35,10 +126,7 @@ export async function POST(request: Request) {
           source: shippingLine.shippingRateId
         } : undefined,
         customer: {
-          first_name: customer.firstName,
-          last_name: customer.lastName,
-          email: customer.email,
-          phone: customer.phone
+          id: customerId
         },
         shipping_address: {
           first_name: customer.firstName,
