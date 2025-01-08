@@ -2,7 +2,11 @@
 
 import { motion } from 'framer-motion';
 
-export default function FinalSlide() {
+interface FinalSlideProps {
+  onBack: () => void;
+}
+
+export default function FinalSlide({ onBack }: FinalSlideProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -35,9 +39,16 @@ export default function FinalSlide() {
         Un vendeur va venir vous voir dans quelques instants pour confirmer votre panier et procéder au paiement.
       </p>
 
-      <div className="animate-pulse text-gray-400">
+      <div className="animate-pulse text-gray-400 mb-8">
         En attente d'un vendeur...
       </div>
+
+      <button
+        onClick={onBack}
+        className="w-full py-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold text-lg"
+      >
+        Retour
+      </button>
     </motion.div>
   );
 }
