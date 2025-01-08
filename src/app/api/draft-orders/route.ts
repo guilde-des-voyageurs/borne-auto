@@ -39,7 +39,9 @@ async function findOrUpdateCustomer(customer: any) {
               first_name: customer.first_name,
               last_name: customer.last_name,
               email: customer.email,
-              phone: customer.phone
+              phone: customer.phone,
+              accepts_marketing: customer.accepts_marketing,
+              accepts_marketing_updated_at: new Date().toISOString()
             }
           })
         }
@@ -65,7 +67,9 @@ async function findOrUpdateCustomer(customer: any) {
               first_name: customer.first_name,
               last_name: customer.last_name,
               email: customer.email,
-              phone: customer.phone
+              phone: customer.phone,
+              accepts_marketing: customer.accepts_marketing,
+              accepts_marketing_updated_at: new Date().toISOString()
             }
           })
         }
@@ -109,7 +113,8 @@ export async function POST(request: Request) {
       first_name: customer.firstName,
       last_name: customer.lastName,
       email: customer.email,
-      phone: customer.phone
+      phone: customer.phone,
+      accepts_marketing: customer.acceptsMarketing
     };
 
     const customerId = await findOrUpdateCustomer(customerData);

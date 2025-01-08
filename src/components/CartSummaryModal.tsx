@@ -43,6 +43,7 @@ interface CustomerInfo {
   address1: string;
   city: string;
   postalCode: string;
+  acceptsMarketing: boolean;
 }
 
 interface CartSummaryModalProps {
@@ -70,7 +71,8 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     phone: '',
     address1: '',
     city: '',
-    postalCode: ''
+    postalCode: '',
+    acceptsMarketing: false
   });
 
   // Liste des pays disponibles à partir des zones d'expédition
@@ -130,10 +132,10 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   };
 
   const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setCustomerInfo(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -375,6 +377,28 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
                     required
                   />
+                </div>
+                <div className="col-span-2 mt-4">
+                  <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                      <input
+                        id="acceptsMarketing"
+                        name="acceptsMarketing"
+                        type="checkbox"
+                        checked={customerInfo.acceptsMarketing}
+                        onChange={handleCustomerInfoChange}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                      />
+                    </div>
+                    <div className="ml-3">
+                      <label htmlFor="acceptsMarketing" className="text-sm text-gray-700">
+                        Je souhaite recevoir occasionnellement des nouvelles de la marque par email
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        Vous pourrez vous désinscrire à tout moment via le lien présent dans nos emails
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

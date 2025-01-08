@@ -6,6 +6,27 @@ import { useState } from 'react';
 import CartSummaryModal from './CartSummaryModal';
 import { createDraftOrder } from '../utils/shopifyDraft';
 
+interface Customer {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address1: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  acceptsMarketing: boolean;
+}
+
+interface DraftOrderOptions {
+  shippingLine: {
+    title: string;
+    shippingRateId: string;
+    price: string;
+  };
+  customer: Customer;
+}
+
 export default function Cart() {
   const { state, dispatch } = useCart();
   const [showSummary, setShowSummary] = useState(false);
@@ -38,19 +59,7 @@ export default function Cart() {
     }, 0);
   };
 
-  const handleCreateDraftOrder = async (options: {
-    shippingLine: { title: string; shippingRateId: string; price: string };
-    customer: {
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone: string;
-      address1: string;
-      city: string;
-      postalCode: string;
-      country: string;
-    };
-  }) => {
+  const handleCreateDraftOrder = async (options: DraftOrderOptions) => {
     try {
       await createDraftOrder({
         items: state.items,

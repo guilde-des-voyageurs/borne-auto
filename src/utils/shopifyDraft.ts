@@ -12,6 +12,7 @@ interface Customer {
   city: string;
   postalCode: string;
   country: string;
+  acceptsMarketing: boolean;
 }
 
 interface DraftOrderInput {
