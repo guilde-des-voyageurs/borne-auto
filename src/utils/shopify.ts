@@ -1,7 +1,7 @@
 export async function getProducts() {
   try {
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/products.json?status=active&fields=id,title,product_type,images,variants`,
+      `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/products.json?status=active`,
       {
         headers: {
           'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
@@ -15,7 +15,18 @@ export async function getProducts() {
     }
 
     const data = await response.json();
-    return data;
+    
+    // Transformer les données pour inclure le poids dans chaque variante
+    const productsWithWeights = data.products.map(product => ({
+      ...product,
+      variants: product.variants.map(variant => ({
+        ...variant,
+        weight: parseFloat(variant.grams) / 1000, // Convertir les grammes en kg
+        weight_unit: 'kg'
+      }))
+    }));
+
+    return { products: productsWithWeights };
   } catch (error) {
     console.error('Error fetching products:', error instanceof Error ? error.message : 'Unknown error');
     return { products: [] };

@@ -9,6 +9,8 @@ interface CartItem {
   price: string;
   quantity: number;
   image: string;
+  weight: number;
+  weight_unit: string;
 }
 
 interface CartState {

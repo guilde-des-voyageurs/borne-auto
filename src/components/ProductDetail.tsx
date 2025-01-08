@@ -11,6 +11,8 @@ interface Variant {
   option1: string | null; // Couleur
   option2: string | null; // Taille
   image_id: string | null;
+  weight: number | null;
+  weight_unit: string | null;
 }
 
 interface ProductDetailProps {
@@ -82,7 +84,9 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
             variantTitle: `${selectedColor} - ${selectedSize}`,
             price: selectedVariant.price,
             quantity: 1,
-            image: currentImage
+            image: currentImage,
+            weight: selectedVariant.weight || 0,
+            weight_unit: selectedVariant.weight_unit || 'kg'
           }
         }
       });

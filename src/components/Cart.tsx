@@ -3,10 +3,12 @@
 import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import CartSummaryModal from './CartSummaryModal';
 
 export default function Cart() {
   const { state, dispatch } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   const updateQuantity = (variantId: string, quantity: number) => {
     if (quantity < 1) {
@@ -26,6 +28,22 @@ export default function Cart() {
 
   const handleClose = () => {
     setIsOpen(false);
+  };
+
+  const formatWeight = (weight: number, unit: string = 'g') => {
+    if (unit === 'kg') {
+      return `${weight.toFixed(2)} kg`;
+    }
+    if (weight >= 1000) {
+      return `${(weight / 1000).toFixed(2)} kg`;
+    }
+    return `${weight} g`;
+  };
+
+  const calculateTotalWeight = () => {
+    return Object.entries(state.items).reduce((total, [_, item]) => {
+      return total + (item.weight * item.quantity);
+    }, 0);
   };
 
   return (
@@ -132,9 +150,14 @@ export default function Cart() {
                               className="w-16 h-16 object-cover rounded"
                             />
                           )}
+                          <div className="flex flex-col">
+                            <span className="font-medium">{item.title}</span>
+                            <span className="text-sm text-gray-600">{item.variantTitle}</span>
+                            <span className="text-sm text-gray-600">
+                              {formatWeight(item.weight, item.weight_unit)}
+                            </span>
+                          </div>
                           <div>
-                            <div className="font-medium text-gray-800">{item.title}</div>
-                            <div className="text-sm text-gray-500">{item.variantTitle}</div>
                             <div className="text-sm text-blue-600 font-medium">{item.price} €</div>
                             <div className="flex items-center gap-2 mt-2">
                               <button
@@ -167,10 +190,22 @@ export default function Cart() {
 
                   {/* Total */}
                   <div className="border-t border-gray-200 pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">Poids total</span>
+                      <span className="font-medium text-gray-800">
+                        {formatWeight(calculateTotalWeight())}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Total</span>
                       <span className="font-bold text-xl text-gray-800">{state.total.toFixed(2)} €</span>
                     </div>
+                    <button
+                      onClick={() => setShowSummary(true)}
+                      className="w-full mt-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Valider le panier
+                    </button>
                   </div>
                 </>
               )}
@@ -178,6 +213,9 @@ export default function Cart() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Modal de résumé */}
+      <CartSummaryModal isOpen={showSummary} onClose={() => setShowSummary(false)} />
     </>
   );
 }
