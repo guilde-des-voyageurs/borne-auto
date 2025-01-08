@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getDefaultImageByProduct } from '../constants/images';
 import { useCart } from '../context/CartContext';
 
@@ -42,6 +42,25 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   // Extraire les options uniques
   const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
   const sizes = Array.from(new Set(product.variants.map(v => v.option2).filter(Boolean)));
+
+  // Calculer les tailles disponibles pour la couleur sélectionnée
+  const availableSizes = useMemo(() => {
+    if (!selectedColor) return new Set(sizes);
+    
+    return new Set(
+      product.variants
+        .filter(v => v.option1 === selectedColor)
+        .map(v => v.option2)
+        .filter(Boolean)
+    );
+  }, [selectedColor, product.variants, sizes]);
+
+  // Réinitialiser la taille si elle n'est plus disponible avec la nouvelle couleur
+  useEffect(() => {
+    if (selectedSize && !availableSizes.has(selectedSize)) {
+      setSelectedSize(null);
+    }
+  }, [selectedColor, availableSizes, selectedSize]);
 
   // Trouver la variante sélectionnée
   const selectedVariant = product.variants.find(
@@ -123,19 +142,25 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-4">Tailles disponibles</h3>
           <div className="flex flex-wrap gap-4">
-            {sizes.map((size) => (
-              <button
-                key={size}
-                onClick={() => setSelectedSize(size)}
-                className={`px-6 py-3 rounded-lg border-2 transition-all ${
-                  selectedSize === size
-                    ? 'border-blue-400 bg-blue-900'
-                    : 'border-gray-400 hover:border-blue-400'
-                }`}
-              >
-                {size}
-              </button>
-            ))}
+            {sizes.map((size) => {
+              const isAvailable = availableSizes.has(size);
+              return (
+                <button
+                  key={size}
+                  onClick={() => isAvailable && setSelectedSize(size)}
+                  disabled={!isAvailable}
+                  className={`px-6 py-3 rounded-lg border-2 transition-all ${
+                    selectedSize === size
+                      ? 'border-blue-400 bg-blue-900'
+                      : isAvailable
+                      ? 'border-gray-400 hover:border-blue-400'
+                      : 'border-gray-600 bg-gray-700 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
