@@ -34,11 +34,30 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   useEffect(() => {
     const fetchShippingProfiles = async () => {
       const profiles = await getShippingProfiles();
+      console.log('Profils disponibles:', profiles.map(p => `${p.name} (ID: ${p.id})`));
       setShippingProfiles(profiles);
       setIsLoading(false);
     };
     fetchShippingProfiles();
   }, []);
+
+  useEffect(() => {
+    if (selectedShippingProfile) {
+      const selectedProfile = shippingProfiles
+        .flatMap(zone => zone.price_based_shipping_rates || [])
+        .find(rate => rate.id === selectedShippingProfile);
+      
+      const zone = shippingProfiles.find(zone => 
+        zone.price_based_shipping_rates?.some(rate => rate.id === selectedShippingProfile)
+      );
+
+      console.log('Profil sélectionné:', {
+        zone: zone?.name,
+        method: selectedProfile?.name,
+        price: selectedProfile?.price
+      });
+    }
+  }, [selectedShippingProfile, shippingProfiles]);
 
   console.log('État des profils:', shippingProfiles);
 
@@ -160,6 +179,8 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                 {shippingProfiles.map((zone) => (
                   <div key={zone.id}>
                     <div className="font-medium text-gray-700 mb-2">{zone.name}</div>
+                    
+                    {/* Méthodes basées sur le prix */}
                     {zone.price_based_shipping_rates?.map((rate: any) => (
                       <div key={rate.id} className="ml-4 mb-2">
                         <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
@@ -181,12 +202,44 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                         </div>
                       </div>
                     ))}
+
+                    {/* Méthodes basées sur le poids */}
+                    {zone.weight_based_shipping_rates?.filter((rate: any) => {
+                      const totalWeight = calculateTotalWeight();
+                      return totalWeight >= rate.weight_low && totalWeight <= rate.weight_high;
+                    }).map((rate: any) => (
+                      <div key={rate.id} className="ml-4 mb-2">
+                        <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50 bg-gray-50">
+                          <input
+                            type="radio"
+                            id={`shipping-${rate.id}`}
+                            name="shipping-rate"
+                            value={rate.id}
+                            checked={selectedShippingProfile === rate.id}
+                            onChange={(e) => setSelectedShippingProfile(e.target.value)}
+                            className="form-radio h-4 w-4 text-green-600"
+                          />
+                          <label htmlFor={`shipping-${rate.id}`} className="flex flex-col cursor-pointer">
+                            <span className="font-medium">{rate.name}</span>
+                            <span className="text-sm text-gray-600">
+                              {rate.price > 0 ? `${parseFloat(rate.price).toFixed(2)}€` : 'Gratuit'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Pour {rate.weight_low}kg - {rate.weight_high}kg
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
             ) : (
               <p>Aucune méthode d'expédition disponible</p>
             )}
+            <div className="text-sm text-gray-500 mt-2">
+              Poids total du panier : {calculateTotalWeight().toFixed(2)}kg
+            </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-gray-200">
