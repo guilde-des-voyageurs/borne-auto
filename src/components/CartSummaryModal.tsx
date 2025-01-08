@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShippingProfiles } from '../utils/shippingProfiles';
 
@@ -22,9 +22,16 @@ interface ShippingRate {
   weight_high: number;
 }
 
+interface Country {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface ShippingZone {
   id: string;
   name: string;
+  countries: Country[];
   weight_based_shipping_rates?: ShippingRate[];
 }
 
@@ -44,7 +51,23 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   const [error, setError] = useState<string | null>(null);
   const [shippingProfiles, setShippingProfiles] = useState<ShippingZone[]>([]);
   const [selectedShippingProfile, setSelectedShippingProfile] = useState<string>('');
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Liste des pays disponibles à partir des zones d'expédition
+  const availableCountries = useMemo(() => {
+    const countries = shippingProfiles.flatMap(zone => zone.countries);
+    // Supprimer les doublons basés sur le code pays
+    return Array.from(new Map(countries.map(country => [country.code, country])).values());
+  }, [shippingProfiles]);
+
+  // Trouver la zone d'expédition pour le pays sélectionné
+  const selectedZone = useMemo(() => {
+    if (!selectedCountry) return null;
+    return shippingProfiles.find(zone => 
+      zone.countries.some(country => country.code === selectedCountry)
+    );
+  }, [shippingProfiles, selectedCountry]);
 
   useEffect(() => {
     const fetchShippingProfiles = async () => {
@@ -55,24 +78,25 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     fetchShippingProfiles();
   }, []);
 
+  // Réinitialiser la méthode d'expédition sélectionnée quand le pays change
   useEffect(() => {
-    if (selectedShippingProfile) {
-      const selectedProfile = shippingProfiles
-        .flatMap(zone => zone.weight_based_shipping_rates || [])
-        .find(rate => rate.id === selectedShippingProfile);
-      
-      const zone = shippingProfiles.find(zone => 
-        zone.weight_based_shipping_rates?.some(rate => rate.id === selectedShippingProfile)
+    setSelectedShippingProfile('');
+  }, [selectedCountry]);
+
+  // Log de la sélection
+  useEffect(() => {
+    if (selectedShippingProfile && selectedZone) {
+      const selectedRate = selectedZone.weight_based_shipping_rates?.find(
+        rate => rate.id.toString() === selectedShippingProfile
       );
 
-      console.log('Profil sélectionné:', {
-        zone: zone?.name,
-        method: selectedProfile?.name,
+      console.log('Sélection:', {
+        country: availableCountries.find(c => c.code === selectedCountry)?.name,
+        zone: selectedZone.name,
+        method: selectedRate?.name
       });
     }
-  }, [selectedShippingProfile, shippingProfiles]);
-
-  console.log('État des profils:', shippingProfiles);
+  }, [selectedShippingProfile, selectedZone, selectedCountry, availableCountries]);
 
   const calculateTotalWeight = () => {
     return Object.entries(state.items).reduce((total, [_, item]: [string, any]) => {
@@ -87,8 +111,12 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   };
 
   const handleCreateDraftOrder = async () => {
+    if (!selectedCountry) {
+      alert('Veuillez sélectionner un pays');
+      return;
+    }
     if (!selectedShippingProfile) {
-      alert('Veuillez sélectionner un profil d\'expédition');
+      alert('Veuillez sélectionner une méthode d\'expédition');
       return;
     }
     setIsCreatingOrder(true);
@@ -184,48 +212,68 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
           </div>
 
           <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Méthodes d'expédition</h3>
-            <div className="text-sm text-gray-500 mb-4">
-              Poids total du panier : {calculateTotalWeight().toFixed(2)}kg
-            </div>
-            {isLoading ? (
-              <p>Chargement des méthodes d'expédition...</p>
-            ) : shippingProfiles.length > 0 ? (
-              <div className="space-y-2">
-                {shippingProfiles.map((zone) => (
-                  <div key={zone.id}>
-                    <div className="font-medium text-gray-700 mb-2">{zone.name}</div>
-                    
-                    {/* Méthodes basées sur le poids */}
-                    {zone.weight_based_shipping_rates?.filter((rate: ShippingRate) => {
-                      const totalWeight = calculateTotalWeight();
-                      return totalWeight >= rate.weight_low && totalWeight <= rate.weight_high;
-                    }).map((rate: ShippingRate) => (
-                      <div key={rate.id} className="ml-4 mb-2">
-                        <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
-                          <input
-                            type="radio"
-                            id={`shipping-${rate.id}`}
-                            name="shipping-rate"
-                            value={rate.id}
-                            checked={selectedShippingProfile === rate.id}
-                            onChange={(e) => setSelectedShippingProfile(e.target.value)}
-                            className="form-radio h-4 w-4 text-green-600"
-                          />
-                          <label htmlFor={`shipping-${rate.id}`} className="flex flex-col cursor-pointer">
-                            <span className="font-medium">{rate.name}</span>
-                            <span className="text-xs text-gray-500">
-                              Pour {rate.weight_low}kg - {rate.weight_high}kg
-                            </span>
-                          </label>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {/* Sélection du pays */}
+            <div className="mb-6">
+              <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
+                Pays de livraison
+              </label>
+              <select
+                id="country"
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+              >
+                <option value="">Sélectionnez un pays</option>
+                {availableCountries.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
                 ))}
-              </div>
-            ) : (
-              <p>Aucune méthode d'expédition disponible</p>
+              </select>
+            </div>
+
+            {/* Méthodes d'expédition */}
+            {selectedCountry && (
+              <>
+                <h3 className="text-lg font-semibold mb-2">Méthodes d'expédition</h3>
+                <div className="text-sm text-gray-500 mb-4">
+                  Poids total du panier : {calculateTotalWeight().toFixed(2)}kg
+                </div>
+                {isLoading ? (
+                  <p>Chargement des méthodes d'expédition...</p>
+                ) : selectedZone?.weight_based_shipping_rates?.length ? (
+                  <div className="space-y-2">
+                    {selectedZone.weight_based_shipping_rates
+                      .filter((rate) => {
+                        const totalWeight = calculateTotalWeight();
+                        return totalWeight >= rate.weight_low && totalWeight <= rate.weight_high;
+                      })
+                      .map((rate) => (
+                        <div key={rate.id} className="ml-4 mb-2">
+                          <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
+                            <input
+                              type="radio"
+                              id={`shipping-${rate.id}`}
+                              name="shipping-rate"
+                              value={rate.id}
+                              checked={selectedShippingProfile === rate.id.toString()}
+                              onChange={(e) => setSelectedShippingProfile(e.target.value)}
+                              className="form-radio h-4 w-4 text-green-600"
+                            />
+                            <label htmlFor={`shipping-${rate.id}`} className="flex flex-col cursor-pointer">
+                              <span className="font-medium">{rate.name}</span>
+                              <span className="text-xs text-gray-500">
+                                Pour {rate.weight_low}kg - {rate.weight_high}kg
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p>Aucune méthode d'expédition disponible pour ce pays et ce poids</p>
+                )}
+              </>
             )}
           </div>
 
