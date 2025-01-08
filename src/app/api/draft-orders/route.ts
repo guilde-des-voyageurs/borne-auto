@@ -91,10 +91,9 @@ async function findOrUpdateCustomer(customer: any) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, shippingLine, customer } = body;
+    const { items, customer } = body;
 
     console.log('Items reçus:', items);
-    console.log('Méthode d\'expédition reçue:', shippingLine);
     console.log('Informations client reçues:', customer);
 
     // Convertir les items du panier en format Shopify
@@ -124,11 +123,6 @@ export async function POST(request: Request) {
         line_items,
         note: "Commande créée depuis la borne automatique",
         tags: "borne-auto",
-        shipping_line: shippingLine ? {
-          shipping_rate_id: shippingLine.shippingRateId,
-          title: shippingLine.title,
-          price: shippingLine.price
-        } : undefined,
         customer: {
           id: customerId
         },
@@ -138,7 +132,6 @@ export async function POST(request: Request) {
           address1: customer.address1,
           city: customer.city,
           zip: customer.postalCode,
-          country: customer.country,
           phone: customer.phone
         }
       }
