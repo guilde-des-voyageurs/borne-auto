@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import CartSummaryModal from './CartSummaryModal';
+import { createDraftOrder } from '../utils/shopifyDraft';
 
 export default function Cart() {
   const { state, dispatch } = useCart();
@@ -35,6 +36,16 @@ export default function Cart() {
     return Object.entries(state.items).reduce((total, [_, item]) => {
       return total + (item.weight * item.quantity);
     }, 0);
+  };
+
+  const handleCreateDraftOrder = async () => {
+    try {
+      await createDraftOrder(state.items);
+      dispatch({ type: 'CLEAR_CART' });
+      setShowSummary(false);
+    } catch (error) {
+      console.error('Error creating draft order:', error);
+    }
   };
 
   return (
@@ -142,6 +153,7 @@ export default function Cart() {
           <CartSummaryModal
             onClose={() => setShowSummary(false)}
             state={state}
+            onCreateDraftOrder={handleCreateDraftOrder}
           />
         )}
       </AnimatePresence>
