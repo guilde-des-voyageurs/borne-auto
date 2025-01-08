@@ -20,6 +20,7 @@ interface ShippingRate {
   name: string;
   weight_low: number;
   weight_high: number;
+  price: number;
 }
 
 interface Country {
@@ -181,7 +182,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
         shippingLine: {
           title: selectedRate.name,
           shippingRateId: selectedRate.id,
-          price: '0'
+          price: selectedRate.price.toString()
         },
         customer: {
           ...customerInfo,
@@ -194,6 +195,13 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     } finally {
       setIsCreatingOrder(false);
     }
+  };
+
+  const calculateTotalWithShipping = () => {
+    const selectedRate = selectedZone?.weight_based_shipping_rates?.find(
+      rate => rate.id.toString() === selectedShippingProfile
+    );
+    return state.total + (selectedRate?.price || 0);
   };
 
   return (
@@ -453,6 +461,9 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                             />
                             <label htmlFor={`shipping-${rate.id}`} className="flex flex-col cursor-pointer">
                               <span className="font-medium">{rate.name}</span>
+                              <span className="text-sm text-gray-600">
+                                {rate.price > 0 ? `${rate.price.toFixed(2)}€` : 'Gratuit'}
+                              </span>
                               <span className="text-xs text-gray-500">
                                 Pour {rate.weight_low}kg - {rate.weight_high}kg
                               </span>
@@ -468,12 +479,24 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
             )}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total</span>
-              <span className="font-bold text-xl text-gray-800">
-                {state.total.toFixed(2)} €
-              </span>
+          <div className="mt-6 border-t pt-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">Sous-total :</span>
+              <span className="font-medium">{state.total.toFixed(2)}€</span>
+            </div>
+            {selectedShippingProfile && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Frais d'expédition :</span>
+                <span className="font-medium">
+                  {(selectedZone?.weight_based_shipping_rates?.find(
+                    rate => rate.id.toString() === selectedShippingProfile
+                  )?.price || 0).toFixed(2)}€
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-lg font-bold">
+              <span>Total :</span>
+              <span>{calculateTotalWithShipping().toFixed(2)}€</span>
             </div>
           </div>
 
