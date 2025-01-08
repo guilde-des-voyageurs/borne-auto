@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
+import { createDraftOrder } from '../utils/shopifyDraft';
 
 interface CartSummaryModalProps {
   isOpen: boolean;
@@ -9,7 +11,9 @@ interface CartSummaryModalProps {
 }
 
 export default function CartSummaryModal({ isOpen, onClose }: CartSummaryModalProps) {
-  const { state } = useCart();
+  const { state, dispatch } = useCart();
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const calculateTotalWeight = () => {
     return Object.entries(state.items).reduce((total, [_, item]) => {
@@ -25,6 +29,22 @@ export default function CartSummaryModal({ isOpen, onClose }: CartSummaryModalPr
       return `${(weight / 1000).toFixed(2)} kg`;
     }
     return `${weight} g`;
+  };
+
+  const handleCreateDraftOrder = async () => {
+    setIsCreatingOrder(true);
+    setError(null);
+    
+    try {
+      await createDraftOrder(state.items);
+      dispatch({ type: 'CLEAR_CART' });
+      onClose();
+    } catch (err) {
+      setError('Erreur lors de la création de la commande. Veuillez réessayer.');
+      console.error('Error creating draft order:', err);
+    } finally {
+      setIsCreatingOrder(false);
+    }
   };
 
   return (
@@ -122,10 +142,23 @@ export default function CartSummaryModal({ isOpen, onClose }: CartSummaryModalPr
               </div>
             </div>
 
-            <div className="mt-6">
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={handleCreateDraftOrder}
+                disabled={isCreatingOrder}
+                className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreatingOrder ? 'Création en cours...' : 'Créer une commande provisoire'}
+              </button>
               <button
                 onClick={onClose}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Fermer
               </button>
