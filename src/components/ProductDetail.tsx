@@ -13,6 +13,7 @@ interface Variant {
   image_id: string | null;
   weight: number | null;
   weight_unit: string | null;
+  admin_graphql_api_id: string | null;
 }
 
 interface ProductDetailProps {
@@ -74,12 +75,20 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
 
   const handleAddToCart = () => {
     if (selectedVariant) {
+      console.log('Variant sélectionnée:', selectedVariant);
+      
+      // Extraire l'ID numérique de la variante
+      const variantId = selectedVariant.admin_graphql_api_id || `gid://shopify/ProductVariant/${selectedVariant.id}`;
+      const productId = product.admin_graphql_api_id || `gid://shopify/Product/${product.id}`;
+      
+      console.log('IDs utilisés:', { variantId, productId });
+
       dispatch({
         type: 'ADD_ITEM',
         payload: {
-          variantId: selectedVariant.id,
+          variantId,
           item: {
-            productId: product.id,
+            productId,
             title: product.title,
             variantTitle: `${selectedColor} - ${selectedSize}`,
             price: selectedVariant.price,

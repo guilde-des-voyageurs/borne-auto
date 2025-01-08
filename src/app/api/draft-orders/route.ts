@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     // Convertir les items du panier en format Shopify
     const line_items = Object.entries(items).map(([variantId, item]: [string, any]) => {
       // Extraire uniquement l'ID numérique de la variante
-      const numericId = variantId.split('/').pop();
+      const numericId = variantId.split('/').pop()?.replace('ProductVariant/', '') || '';
       console.log('Conversion variantId:', { original: variantId, numericId });
       
       return {
