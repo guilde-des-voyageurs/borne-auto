@@ -122,11 +122,15 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     }
   }, [selectedShippingProfile, selectedZone, selectedCountry, availableCountries]);
 
+  // Calculer le poids total du panier
   const calculateTotalWeight = () => {
-    return Object.entries(state.items).reduce((total, [_, item]: [string, any]) => {
+    return Object.values(state.items).reduce((total, item) => {
       return total + (item.weight * item.quantity);
     }, 0);
   };
+
+  // Mémoriser le poids total
+  const totalWeight = useMemo(() => calculateTotalWeight(), [state.items]);
 
   const formatWeight = (weight: number, unit: string = 'kg') => {
     // Convertir en kg si le poids est en grammes
@@ -398,29 +402,42 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Méthode d'expédition
                             </label>
+                            <div className="text-sm text-gray-500 mb-2">
+                              Poids total : {totalWeight.toFixed(2)}kg
+                            </div>
                             <div className="space-y-2">
-                              {selectedZone?.weight_based_shipping_rates?.map((rate) => (
-                                <div key={rate.id} className="flex items-center">
-                                  <input
-                                    type="radio"
-                                    id={`shipping-${rate.id}`}
-                                    name="shipping-method"
-                                    value={rate.id}
-                                    checked={selectedShippingProfile === rate.id.toString()}
-                                    onChange={(e) => setSelectedShippingProfile(e.target.value)}
-                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                                  />
-                                  <label htmlFor={`shipping-${rate.id}`} className="ml-3">
-                                    <div className="font-medium">{rate.name}</div>
-                                    <div className="text-sm text-gray-600">
-                                      {rate.price > 0 ? `${rate.price.toFixed(2)}€` : 'Gratuit'}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      Pour {rate.weight_low}kg - {rate.weight_high}kg
-                                    </div>
-                                  </label>
+                              {selectedZone?.weight_based_shipping_rates
+                                ?.filter(rate => 
+                                  totalWeight >= rate.weight_low && 
+                                  totalWeight <= rate.weight_high
+                                )
+                                .map((rate) => (
+                                  <div key={rate.id} className="flex items-center">
+                                    <input
+                                      type="radio"
+                                      id={`shipping-${rate.id}`}
+                                      name="shipping-method"
+                                      value={rate.id}
+                                      checked={selectedShippingProfile === rate.id.toString()}
+                                      onChange={(e) => setSelectedShippingProfile(e.target.value)}
+                                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                                    />
+                                    <label htmlFor={`shipping-${rate.id}`} className="ml-3">
+                                      <div className="font-medium">{rate.name}</div>
+                                      <div className="text-sm text-gray-600">
+                                        {rate.price > 0 ? `${rate.price.toFixed(2)}€` : 'Gratuit'}
+                                      </div>
+                                    </label>
+                                  </div>
+                                ))}
+                              {selectedZone.weight_based_shipping_rates?.filter(rate => 
+                                totalWeight >= rate.weight_low && 
+                                totalWeight <= rate.weight_high
+                              ).length === 0 && (
+                                <div className="text-sm text-red-600">
+                                  Aucune méthode d'expédition disponible pour ce poids
                                 </div>
-                              ))}
+                              )}
                             </div>
                           </div>
                         )}
