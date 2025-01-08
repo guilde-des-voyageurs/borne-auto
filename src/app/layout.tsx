@@ -21,19 +21,23 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="fr">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <CartProvider>
-          {children}
-          <Cart />
+          <div className="flex">
+            <main className="flex-1 min-h-screen">
+              {children}
+            </main>
+            <Cart />
+          </div>
         </CartProvider>
       </body>
     </html>
-  );
+  )
 }
