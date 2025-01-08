@@ -125,10 +125,9 @@ export async function POST(request: Request) {
         note: "Commande créée depuis la borne automatique",
         tags: "borne-auto",
         shipping_line: shippingLine ? {
+          shipping_rate_id: shippingLine.shippingRateId,
           title: shippingLine.title,
-          custom: true,
-          price: shippingLine.price,
-          source: shippingLine.shippingRateId
+          price: shippingLine.price
         } : undefined,
         customer: {
           id: customerId
