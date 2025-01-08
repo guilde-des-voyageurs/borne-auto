@@ -10,14 +10,14 @@ export default function Cart() {
 
   const updateQuantity = (variantId: string, quantity: number) => {
     if (quantity < 1) {
-      dispatch({ type: 'REMOVE_ITEM', payload: { variantId } });
+      dispatch({ type: 'REMOVE_ITEM', payload: variantId });
       return;
     }
     dispatch({ type: 'UPDATE_QUANTITY', payload: { variantId, quantity } });
   };
 
   const removeItem = (variantId: string) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: { variantId } });
+    dispatch({ type: 'REMOVE_ITEM', payload: variantId });
   };
 
   const clearCart = () => {

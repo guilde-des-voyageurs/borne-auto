@@ -76,12 +76,14 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
         type: 'ADD_ITEM',
         payload: {
           variantId: selectedVariant.id,
-          productId: product.id,
-          title: product.title,
-          variantTitle: `${selectedColor} - ${selectedSize}`,
-          price: selectedVariant.price,
-          quantity: 1,
-          image: currentImage
+          item: {
+            productId: product.id,
+            title: product.title,
+            variantTitle: `${selectedColor} - ${selectedSize}`,
+            price: selectedVariant.price,
+            quantity: 1,
+            image: currentImage
+          }
         }
       });
 

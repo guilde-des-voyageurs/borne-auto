@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 interface CartItem {
-  variantId: string;
   productId: string;
   title: string;
   variantTitle: string;
@@ -13,93 +12,94 @@ interface CartItem {
 }
 
 interface CartState {
-  items: CartItem[];
+  items: { [variantId: string]: CartItem };
   total: number;
-  itemCount: number;
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: CartItem }
+  | { type: 'ADD_ITEM'; payload: { variantId: string; item: CartItem } }
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { variantId: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
 const initialState: CartState = {
-  items: [],
+  items: {},
   total: 0,
-  itemCount: 0,
 };
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existingItemIndex = state.items.findIndex(
-        item => item.variantId === action.payload.variantId
-      );
+      const { variantId, item } = action.payload;
+      const existingItem = state.items[variantId];
 
-      let newItems;
-      if (existingItemIndex > -1) {
-        newItems = state.items.map((item, index) => {
-          if (index === existingItemIndex) {
-            return { ...item, quantity: item.quantity + action.payload.quantity };
-          }
-          return item;
-        });
-      } else {
-        newItems = [...state.items, action.payload];
-      }
+      const updatedItems = {
+        ...state.items,
+        [variantId]: existingItem
+          ? { ...existingItem, quantity: existingItem.quantity + item.quantity }
+          : item,
+      };
 
-      const total = newItems.reduce(
-        (sum, item) => sum + parseFloat(item.price) * item.quantity,
+      const total = Object.entries(updatedItems).reduce(
+        (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
         0
       );
 
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-
       return {
         ...state,
-        items: newItems,
+        items: updatedItems,
         total,
-        itemCount,
       };
     }
 
     case 'REMOVE_ITEM': {
-      const newItems = state.items.filter(item => item.variantId !== action.payload);
-      const total = newItems.reduce(
-        (sum, item) => sum + parseFloat(item.price) * item.quantity,
+      const { [action.payload]: removedItem, ...remainingItems } = state.items;
+      
+      const total = Object.entries(remainingItems).reduce(
+        (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
         0
       );
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
 
       return {
         ...state,
-        items: newItems,
+        items: remainingItems,
         total,
-        itemCount,
       };
     }
 
     case 'UPDATE_QUANTITY': {
-      const newItems = state.items.map(item => {
-        if (item.variantId === action.payload.variantId) {
-          return { ...item, quantity: action.payload.quantity };
-        }
-        return item;
-      });
+      const { variantId, quantity } = action.payload;
+      
+      if (quantity <= 0) {
+        const { [variantId]: removedItem, ...remainingItems } = state.items;
+        const total = Object.entries(remainingItems).reduce(
+          (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
+          0
+        );
+        return {
+          ...state,
+          items: remainingItems,
+          total,
+        };
+      }
 
-      const total = newItems.reduce(
-        (sum, item) => sum + parseFloat(item.price) * item.quantity,
+      const updatedItems = {
+        ...state.items,
+        [variantId]: {
+          ...state.items[variantId],
+          quantity,
+        },
+      };
+
+      const total = Object.entries(updatedItems).reduce(
+        (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
         0
       );
 
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-
       return {
         ...state,
-        items: newItems,
+        items: updatedItems,
         total,
-        itemCount,
       };
     }
 
@@ -123,10 +123,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      const { items, total, itemCount } = JSON.parse(savedCart);
-      items.forEach((item: CartItem) => {
-        dispatch({ type: 'ADD_ITEM', payload: item });
-      });
+      const parsedCart = JSON.parse(savedCart);
+      if (parsedCart.items && Object.keys(parsedCart.items).length > 0) {
+        Object.entries(parsedCart.items).forEach(([variantId, item]) => {
+          dispatch({
+            type: 'ADD_ITEM',
+            payload: { variantId, item: item as CartItem },
+          });
+        });
+      }
     }
   }, []);
 
