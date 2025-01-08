@@ -1,9 +1,10 @@
 'use client';
 
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { getShippingRates, type ShippingRate } from '../utils/shippingRates';
 
 interface CartItem {
   productId: string;
@@ -25,6 +26,7 @@ interface CustomerInfo {
   city: string;
   postalCode: string;
   acceptsMarketing: boolean;
+  country: string;
 }
 
 interface CartSummaryModalProps {
@@ -35,12 +37,30 @@ interface CartSummaryModalProps {
     };
     total: number;
   };
-  onCreateDraftOrder: (options: { customer: CustomerInfo }) => Promise<void>;
+  onCreateDraftOrder: (options: { 
+    customer: CustomerInfo,
+    shippingLine: { 
+      title: string;
+      price: string;
+    }
+  }) => Promise<void>;
 }
+
+// Liste des pays disponibles
+const AVAILABLE_COUNTRIES = [
+  { code: 'FR', name: 'France' },
+  { code: 'BE', name: 'Belgique' },
+  { code: 'LU', name: 'Luxembourg' },
+  { code: 'DE', name: 'Allemagne' },
+  { code: 'IT', name: 'Italie' },
+  { code: 'ES', name: 'Espagne' }
+];
 
 export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     firstName: '',
     lastName: '',
@@ -49,14 +69,31 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     address1: '',
     city: '',
     postalCode: '',
-    acceptsMarketing: false
+    acceptsMarketing: false,
+    country: ''
   });
 
-  const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  // Récupérer les frais d'expédition lorsque le pays change
+  useEffect(() => {
+    const fetchShippingRates = async () => {
+      if (customerInfo.country) {
+        console.log('Fetching shipping rates for country:', customerInfo.country);
+        const rates = await getShippingRates(customerInfo.country);
+        console.log('Received shipping rates:', rates);
+        setShippingRates(rates);
+        setSelectedShippingRate(null);
+      }
+    };
+
+    fetchShippingRates();
+  }, [customerInfo.country]);
+
+  const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    console.log('Customer info change:', { name, value, type });
     setCustomerInfo(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
@@ -68,7 +105,8 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
       customerInfo.phone.trim() !== '' &&
       customerInfo.address1.trim() !== '' &&
       customerInfo.city.trim() !== '' &&
-      customerInfo.postalCode.trim() !== ''
+      customerInfo.postalCode.trim() !== '' &&
+      customerInfo.country.trim() !== ''
     );
   };
 
@@ -78,13 +116,20 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
       return;
     }
 
+    if (!selectedShippingRate) {
+      alert('Veuillez sélectionner une méthode d\'expédition');
+      return;
+    }
+
     setIsCreatingOrder(true);
     setError(null);
 
     try {
       await onCreateDraftOrder({
-        customer: {
-          ...customerInfo
+        customer: customerInfo,
+        shippingLine: {
+          title: selectedShippingRate.name,
+          price: selectedShippingRate.price
         }
       });
       onClose();
@@ -93,6 +138,12 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     } finally {
       setIsCreatingOrder(false);
     }
+  };
+
+  const calculateTotal = () => {
+    const subtotal = state.total;
+    const shippingCost = selectedShippingRate ? parseFloat(selectedShippingRate.price) : 0;
+    return subtotal + shippingCost;
   };
 
   return (
@@ -143,11 +194,6 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                             </li>
                           ))}
                         </ul>
-                      </div>
-
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-900">Total</h4>
-                        <p className="mt-1 text-sm text-gray-500">{state.total.toFixed(2)} €</p>
                       </div>
 
                       <div className="mt-4">
@@ -244,6 +290,25 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             />
                           </div>
+                          <div>
+                            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                              Pays
+                            </label>
+                            <select
+                              id="country"
+                              name="country"
+                              value={customerInfo.country}
+                              onChange={handleCustomerInfoChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            >
+                              <option value="">Sélectionnez un pays</option>
+                              {AVAILABLE_COUNTRIES.map((country) => (
+                                <option key={country.code} value={country.code}>
+                                  {country.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <div className="col-span-2">
                             <div className="flex items-start">
                               <div className="flex h-5 items-center">
@@ -263,6 +328,58 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                               </div>
                             </div>
                           </div>
+                        </div>
+                      </div>
+
+                      {customerInfo.country && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-medium text-gray-900">Méthode d'expédition</h4>
+                          <div className="mt-2 space-y-2">
+                            {shippingRates.length > 0 ? (
+                              shippingRates.map((rate) => (
+                                <div key={rate.id} className="flex items-center">
+                                  <input
+                                    type="radio"
+                                    id={rate.id}
+                                    name="shippingRate"
+                                    value={rate.id}
+                                    checked={selectedShippingRate?.id === rate.id}
+                                    onChange={() => setSelectedShippingRate(rate)}
+                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  <label htmlFor={rate.id} className="ml-3 flex justify-between w-full">
+                                    <span className="text-sm text-gray-900">{rate.name}</span>
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {parseFloat(rate.price).toFixed(2)} €
+                                    </span>
+                                  </label>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-gray-500">
+                                Aucune méthode d'expédition disponible pour cette destination
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-4 border-t pt-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Sous-total</span>
+                          <span className="font-medium text-gray-900">{state.total.toFixed(2)} €</span>
+                        </div>
+                        {selectedShippingRate && (
+                          <div className="flex justify-between text-sm mt-2">
+                            <span className="text-gray-500">Frais d'expédition</span>
+                            <span className="font-medium text-gray-900">
+                              {parseFloat(selectedShippingRate.price).toFixed(2)} €
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-base font-medium text-gray-900 mt-4">
+                          <span>Total</span>
+                          <span>{calculateTotal().toFixed(2)} €</span>
                         </div>
                       </div>
                     </div>
