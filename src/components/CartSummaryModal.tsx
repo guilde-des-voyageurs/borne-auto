@@ -40,6 +40,8 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     fetchShippingProfiles();
   }, []);
 
+  console.log('État des profils:', shippingProfiles);
+
   const calculateTotalWeight = () => {
     return Object.entries(state.items).reduce((total, [_, item]: [string, any]) => {
       return total + (item.weight * item.quantity);
@@ -150,37 +152,40 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
           </div>
 
           <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Profils d'expédition</h3>
+            <h3 className="text-lg font-semibold mb-2">Méthodes d'expédition</h3>
             {isLoading ? (
-              <p>Chargement des profils d'expédition...</p>
+              <p>Chargement des méthodes d'expédition...</p>
             ) : shippingProfiles.length > 0 ? (
               <div className="space-y-2">
-                {shippingProfiles.map((profile) => (
-                  <div key={profile.id} className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      id={`shipping-${profile.id}`}
-                      name="shipping-profile"
-                      value={profile.id}
-                      checked={selectedShippingProfile === profile.id}
-                      onChange={(e) => setSelectedShippingProfile(e.target.value)}
-                      className="form-radio h-4 w-4 text-green-600"
-                    />
-                    <label htmlFor={`shipping-${profile.id}`} className="flex flex-col cursor-pointer">
-                      <span className="font-medium">{profile.name}</span>
-                      <div className="text-sm text-gray-600">
-                        {profile.price_based_shipping_rates?.map((rate: any) => (
-                          <div key={rate.id} className="mt-1">
-                            {rate.name}: {rate.price > 0 ? `${parseFloat(rate.price).toFixed(2)}€` : 'Gratuit'}
-                          </div>
-                        ))}
+                {shippingProfiles.map((zone) => (
+                  <div key={zone.id}>
+                    <div className="font-medium text-gray-700 mb-2">{zone.name}</div>
+                    {zone.price_based_shipping_rates?.map((rate: any) => (
+                      <div key={rate.id} className="ml-4 mb-2">
+                        <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
+                          <input
+                            type="radio"
+                            id={`shipping-${rate.id}`}
+                            name="shipping-rate"
+                            value={rate.id}
+                            checked={selectedShippingProfile === rate.id}
+                            onChange={(e) => setSelectedShippingProfile(e.target.value)}
+                            className="form-radio h-4 w-4 text-green-600"
+                          />
+                          <label htmlFor={`shipping-${rate.id}`} className="flex flex-col cursor-pointer">
+                            <span className="font-medium">{rate.name}</span>
+                            <span className="text-sm text-gray-600">
+                              {rate.price > 0 ? `${parseFloat(rate.price).toFixed(2)}€` : 'Gratuit'}
+                            </span>
+                          </label>
+                        </div>
                       </div>
-                    </label>
+                    ))}
                   </div>
                 ))}
               </div>
             ) : (
-              <p>Aucun profil d'expédition disponible</p>
+              <p>Aucune méthode d'expédition disponible</p>
             )}
           </div>
 
