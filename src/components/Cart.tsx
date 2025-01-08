@@ -30,14 +30,10 @@ export default function Cart() {
     setIsOpen(false);
   };
 
-  const formatWeight = (weight: number, unit: string = 'g') => {
-    if (unit === 'kg') {
-      return `${weight.toFixed(2)} kg`;
-    }
-    if (weight >= 1000) {
-      return `${(weight / 1000).toFixed(2)} kg`;
-    }
-    return `${weight} g`;
+  const formatWeight = (weight: number, unit: string = 'kg') => {
+    // Convertir en kg si le poids est en grammes
+    const weightInKg = unit === 'g' ? weight / 1000 : weight;
+    return `${weightInKg.toFixed(2)} kg`;
   };
 
   const calculateTotalWeight = () => {
