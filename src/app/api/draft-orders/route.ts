@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items } = body;
+    const { items, shippingLine } = body;
 
     console.log('Items reçus:', items);
+    console.log('Méthode d\'expédition reçue:', shippingLine);
 
     // Convertir les items du panier en format Shopify
     const line_items = Object.entries(items).map(([variantId, item]: [string, any]) => {
@@ -25,7 +26,13 @@ export async function POST(request: Request) {
       draft_order: {
         line_items,
         note: "Commande créée depuis la borne automatique",
-        tags: "borne-auto"
+        tags: "borne-auto",
+        shipping_line: shippingLine ? {
+          title: shippingLine.title,
+          custom: true,
+          price: shippingLine.price,
+          source: shippingLine.shippingRateId
+        } : undefined
       }
     };
 

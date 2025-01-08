@@ -38,9 +38,12 @@ export default function Cart() {
     }, 0);
   };
 
-  const handleCreateDraftOrder = async () => {
+  const handleCreateDraftOrder = async (options: { shippingLine: { title: string; shippingRateId: string; price: string } }) => {
     try {
-      await createDraftOrder(state.items);
+      await createDraftOrder({
+        items: state.items,
+        shippingLine: options.shippingLine
+      });
       dispatch({ type: 'CLEAR_CART' });
       setShowSummary(false);
     } catch (error) {

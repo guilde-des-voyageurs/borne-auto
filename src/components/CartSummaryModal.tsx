@@ -43,7 +43,7 @@ interface CartSummaryModalProps {
     };
     total: number;
   };
-  onCreateDraftOrder: () => Promise<void>;
+  onCreateDraftOrder: (options: { shippingLine: { title: string; shippingRateId: string; price: string } }) => Promise<void>;
 }
 
 export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
@@ -119,11 +119,26 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
       alert('Veuillez sélectionner une méthode d\'expédition');
       return;
     }
+
     setIsCreatingOrder(true);
     setError(null);
 
     try {
-      await onCreateDraftOrder();
+      const selectedRate = selectedZone?.weight_based_shipping_rates?.find(
+        rate => rate.id.toString() === selectedShippingProfile
+      );
+
+      if (!selectedRate) {
+        throw new Error('Méthode d\'expédition non trouvée');
+      }
+
+      await onCreateDraftOrder({
+        shippingLine: {
+          title: selectedRate.name,
+          shippingRateId: selectedRate.id,
+          price: '0' // Le prix est géré côté Shopify selon le poids
+        }
+      });
       onClose();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Une erreur est survenue');

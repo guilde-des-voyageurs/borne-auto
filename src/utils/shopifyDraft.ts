@@ -3,16 +3,26 @@ interface LineItem {
   quantity: number;
 }
 
-export async function createDraftOrder(items: { [variantId: string]: any }) {
+interface DraftOrderInput {
+  items: { [variantId: string]: any };
+  shippingLine?: {
+    title: string;
+    price: string;
+    shippingRateId: string;
+  };
+}
+
+export async function createDraftOrder({ items, shippingLine }: DraftOrderInput) {
   try {
     console.log('Items envoyés à l\'API:', items);
+    console.log('Méthode d\'expédition:', shippingLine);
     
     const response = await fetch('/api/draft-orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, shippingLine }),
     });
 
     if (!response.ok) {
