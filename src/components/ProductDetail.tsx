@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getDefaultImageByProduct } from '../constants/images';
+import { useCart } from '../context/CartContext';
 
 interface Variant {
   id: string;
@@ -36,9 +37,16 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     getDefaultImageByProduct(product.title, product.product_type)
   );
 
+  const { dispatch } = useCart();
+
   // Extraire les options uniques
   const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
   const sizes = Array.from(new Set(product.variants.map(v => v.option2).filter(Boolean)));
+
+  // Trouver la variante sélectionnée
+  const selectedVariant = product.variants.find(
+    v => v.option1 === selectedColor && v.option2 === selectedSize
+  );
 
   // Mettre à jour l'image en fonction de la sélection
   useEffect(() => {
@@ -54,6 +62,23 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       setCurrentImage(getDefaultImageByProduct(product.title, product.product_type));
     }
   }, [selectedColor, product.variants, product.images, product.title, product.product_type]);
+
+  const handleAddToCart = () => {
+    if (selectedVariant) {
+      dispatch({
+        type: 'ADD_ITEM',
+        payload: {
+          variantId: selectedVariant.id,
+          productId: product.id,
+          title: product.title,
+          variantTitle: `${selectedColor} - ${selectedSize}`,
+          price: selectedVariant.price,
+          quantity: 1,
+          image: currentImage
+        }
+      });
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto bg-[#555] rounded-lg shadow-lg p-8 text-white">
@@ -123,6 +148,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             : 'bg-gray-600 cursor-not-allowed'
         }`}
         disabled={!selectedColor || !selectedSize}
+        onClick={handleAddToCart}
       >
         {selectedColor && selectedSize ? 'Ajouter au panier' : 'Sélectionnez une couleur et une taille'}
       </button>
