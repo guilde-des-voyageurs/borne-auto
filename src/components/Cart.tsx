@@ -3,10 +3,12 @@
 import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import CheckoutTunnel from './checkout/CheckoutTunnel';
 
 export default function Cart() {
   const { state, dispatch } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   const updateQuantity = (variantId: string, quantity: number) => {
     if (quantity < 1) {
@@ -17,6 +19,11 @@ export default function Cart() {
         payload: { variantId, quantity },
       });
     }
+  };
+
+  const handleCheckout = () => {
+    setShowCheckout(true);
+    setIsOpen(false);
   };
 
   return (
@@ -151,12 +158,7 @@ export default function Cart() {
                       <span className="font-bold text-xl">{state.total.toFixed(2)} €</span>
                     </div>
                     <button
-                      onClick={() => {
-                        // TODO: Implémenter la validation de la commande
-                        alert('Commande validée !');
-                        dispatch({ type: 'CLEAR_CART' });
-                        setIsOpen(false);
-                      }}
+                      onClick={handleCheckout}
                       className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Valider la commande
@@ -166,6 +168,13 @@ export default function Cart() {
               )}
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Tunnel de validation */}
+      <AnimatePresence>
+        {showCheckout && (
+          <CheckoutTunnel onClose={() => setShowCheckout(false)} />
         )}
       </AnimatePresence>
     </>
