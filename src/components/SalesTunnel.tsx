@@ -3,9 +3,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductDetail from './ProductDetail';
+import SuccessSlide from './SuccessSlide';
 import { getDefaultImageByType, getDefaultImageByProduct } from '../constants/images';
 
-type Slide = 'types' | 'products' | 'variants';
+type Slide = 'types' | 'products' | 'variants' | 'success';
+
+interface SuccessInfo {
+  productTitle: string;
+  productImage: string;
+  variant: string;
+}
 
 interface SalesTunnelProps {
   products: any[];
@@ -16,6 +23,7 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
   const [currentSlide, setCurrentSlide] = useState<Slide>('types');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -32,6 +40,19 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
   const handleProductSelect = (product: any) => {
     setSelectedProduct(product);
     setCurrentSlide('variants');
+  };
+
+  const handleProductAdded = (info: SuccessInfo) => {
+    setSuccessInfo(info);
+    setCurrentSlide('success');
+    
+    // Retourner à la première slide après 2 secondes
+    setTimeout(() => {
+      setCurrentSlide('types');
+      setSelectedType(null);
+      setSelectedProduct(null);
+      setSuccessInfo(null);
+    }, 2000);
   };
 
   const handleBack = () => {
@@ -59,7 +80,7 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
 
   return (
     <div className="container mx-auto p-8">
-      {currentSlide !== 'types' && (
+      {currentSlide !== 'types' && currentSlide !== 'success' && (
         <button
           onClick={handleBack}
           className="fixed top-8 left-8 z-50 px-6 py-3 bg-white shadow-lg rounded-lg hover:bg-gray-100 transition-colors"
@@ -137,7 +158,23 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <ProductDetail product={selectedProduct} />
+            <ProductDetail 
+              product={selectedProduct} 
+              onProductAdded={handleProductAdded}
+            />
+          </motion.div>
+        )}
+
+        {currentSlide === 'success' && successInfo && (
+          <motion.div
+            key="success"
+            variants={fadeVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={{ duration: 0.3 }}
+          >
+            <SuccessSlide {...successInfo} />
           </motion.div>
         )}
       </AnimatePresence>

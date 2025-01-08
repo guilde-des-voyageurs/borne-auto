@@ -14,23 +14,11 @@ interface Variant {
 }
 
 interface ProductDetailProps {
-  product: {
-    id: string;
-    title: string;
-    product_type: string;
-    images: Array<{
-      id: string;
-      src: string;
-    }>;
-    variants: Variant[];
-    options: Array<{
-      name: string;
-      values: string[];
-    }>;
-  };
+  product: any;
+  onProductAdded: (info: { productTitle: string; productImage: string; variant: string }) => void;
 }
 
-export default function ProductDetail({ product }: ProductDetailProps) {
+export default function ProductDetail({ product, onProductAdded }: ProductDetailProps) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [currentImage, setCurrentImage] = useState<string>(
@@ -95,6 +83,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           quantity: 1,
           image: currentImage
         }
+      });
+
+      onProductAdded({
+        productTitle: product.title,
+        productImage: currentImage,
+        variant: `${selectedColor} - ${selectedSize}`
       });
     }
   };
