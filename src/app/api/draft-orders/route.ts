@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, shippingLine } = body;
+    const { items, shippingLine, customer } = body;
 
     console.log('Items reçus:', items);
     console.log('Méthode d\'expédition reçue:', shippingLine);
+    console.log('Informations client reçues:', customer);
 
     // Convertir les items du panier en format Shopify
     const line_items = Object.entries(items).map(([variantId, item]: [string, any]) => {
@@ -32,7 +33,22 @@ export async function POST(request: Request) {
           custom: true,
           price: shippingLine.price,
           source: shippingLine.shippingRateId
-        } : undefined
+        } : undefined,
+        customer: {
+          first_name: customer.firstName,
+          last_name: customer.lastName,
+          email: customer.email,
+          phone: customer.phone
+        },
+        shipping_address: {
+          first_name: customer.firstName,
+          last_name: customer.lastName,
+          address1: customer.address1,
+          city: customer.city,
+          zip: customer.postalCode,
+          country: customer.country,
+          phone: customer.phone
+        }
       }
     };
 

@@ -35,6 +35,16 @@ interface ShippingZone {
   weight_based_shipping_rates?: ShippingRate[];
 }
 
+interface CustomerInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address1: string;
+  city: string;
+  postalCode: string;
+}
+
 interface CartSummaryModalProps {
   onClose: () => void;
   state: {
@@ -43,7 +53,7 @@ interface CartSummaryModalProps {
     };
     total: number;
   };
-  onCreateDraftOrder: (options: { shippingLine: { title: string; shippingRateId: string; price: string } }) => Promise<void>;
+  onCreateDraftOrder: (options: { shippingLine: { title: string; shippingRateId: string; price: string }, customer: CustomerInfo & { country: string } }) => Promise<void>;
 }
 
 export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
@@ -53,6 +63,15 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   const [selectedShippingProfile, setSelectedShippingProfile] = useState<string>('');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address1: '',
+    city: '',
+    postalCode: ''
+  });
 
   // Liste des pays disponibles à partir des zones d'expédition
   const availableCountries = useMemo(() => {
@@ -110,7 +129,31 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     return `${weightInKg.toFixed(2)} kg`;
   };
 
+  const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCustomerInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const isCustomerInfoValid = () => {
+    return (
+      customerInfo.firstName.trim() !== '' &&
+      customerInfo.lastName.trim() !== '' &&
+      customerInfo.email.trim() !== '' &&
+      customerInfo.phone.trim() !== '' &&
+      customerInfo.address1.trim() !== '' &&
+      customerInfo.city.trim() !== '' &&
+      customerInfo.postalCode.trim() !== ''
+    );
+  };
+
   const handleCreateDraftOrder = async () => {
+    if (!isCustomerInfoValid()) {
+      alert('Veuillez remplir tous les champs du formulaire client');
+      return;
+    }
     if (!selectedCountry) {
       alert('Veuillez sélectionner un pays');
       return;
@@ -136,7 +179,11 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
         shippingLine: {
           title: selectedRate.name,
           shippingRateId: selectedRate.id,
-          price: '0' // Le prix est géré côté Shopify selon le poids
+          price: '0'
+        },
+        customer: {
+          ...customerInfo,
+          country: selectedCountry
         }
       });
       onClose();
@@ -227,6 +274,111 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
           </div>
 
           <div className="mt-4">
+            {/* Formulaire client */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4">Informations client</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Prénom
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={customerInfo.firstName}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Nom
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={customerInfo.lastName}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={customerInfo.email}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Téléphone
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={customerInfo.phone}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label htmlFor="address1" className="block text-sm font-medium text-gray-700 mb-1">
+                    Adresse
+                  </label>
+                  <input
+                    type="text"
+                    id="address1"
+                    name="address1"
+                    value={customerInfo.address1}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                    Ville
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={customerInfo.city}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">
+                    Code postal
+                  </label>
+                  <input
+                    type="text"
+                    id="postalCode"
+                    name="postalCode"
+                    value={customerInfo.postalCode}
+                    onChange={handleCustomerInfoChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Sélection du pays */}
             <div className="mb-6">
               <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">

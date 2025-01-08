@@ -38,11 +38,24 @@ export default function Cart() {
     }, 0);
   };
 
-  const handleCreateDraftOrder = async (options: { shippingLine: { title: string; shippingRateId: string; price: string } }) => {
+  const handleCreateDraftOrder = async (options: {
+    shippingLine: { title: string; shippingRateId: string; price: string };
+    customer: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      address1: string;
+      city: string;
+      postalCode: string;
+      country: string;
+    };
+  }) => {
     try {
       await createDraftOrder({
         items: state.items,
-        shippingLine: options.shippingLine
+        shippingLine: options.shippingLine,
+        customer: options.customer
       });
       dispatch({ type: 'CLEAR_CART' });
       setShowSummary(false);
