@@ -91,10 +91,11 @@ async function findOrUpdateCustomer(customer: any) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, customer } = body;
+    const { items, customer, shippingLine } = body;
 
     console.log('Items reçus:', items);
     console.log('Informations client reçues:', customer);
+    console.log('Frais d\'expédition reçus:', shippingLine);
 
     // Convertir les items du panier en format Shopify
     const line_items = Object.entries(items).map(([variantId, item]: [string, any]) => {
@@ -134,6 +135,11 @@ export async function POST(request: Request) {
           zip: customer.postalCode,
           country: customer.country,
           phone: customer.phone
+        },
+        shipping_line: {
+          title: shippingLine.title.includes('Colissimo') ? `${shippingLine.title} (ACTIVER MANUELLEMENT)` : shippingLine.title,
+          price: shippingLine.price,
+          custom: true
         }
       }
     };
