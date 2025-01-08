@@ -3,7 +3,6 @@
 import React, { Fragment } from 'react';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, Transition } from '@headlessui/react';
 import { getShippingProfiles } from '../utils/shippingProfiles';
 
@@ -400,7 +399,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                               Méthode d'expédition
                             </label>
                             <div className="space-y-2">
-                              {selectedZone.weight_based_shipping_rates.map((rate) => (
+                              {selectedZone?.weight_based_shipping_rates?.map((rate) => (
                                 <div key={rate.id} className="flex items-center">
                                   <input
                                     type="radio"
