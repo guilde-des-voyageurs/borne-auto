@@ -1,17 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getShippingProfiles } from '../utils/shippingProfiles';
 
 interface CartSummaryModalProps {
   onClose: () => void;
-  state: any;
+  state: {
+    items: {
+      [variantId: string]: {
+        productId: string;
+        title: string;
+        variantTitle: string;
+        price: string;
+        quantity: number;
+        image?: string;
+        weight: number;
+        weight_unit: string;
+      };
+    };
+    total: number;
+  };
   onCreateDraftOrder: () => Promise<void>;
 }
 
 export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shippingProfiles, setShippingProfiles] = useState<any[]>([]);
+  const [selectedShippingProfile, setSelectedShippingProfile] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchShippingProfiles = async () => {
+      const profiles = await getShippingProfiles();
+      setShippingProfiles(profiles);
+      setIsLoading(false);
+    };
+    fetchShippingProfiles();
+  }, []);
 
   const calculateTotalWeight = () => {
     return Object.entries(state.items).reduce((total, [_, item]: [string, any]) => {
@@ -26,6 +53,10 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   };
 
   const handleCreateDraftOrder = async () => {
+    if (!selectedShippingProfile) {
+      alert('Veuillez sélectionner un profil d\'expédition');
+      return;
+    }
     setIsCreatingOrder(true);
     setError(null);
 
@@ -118,6 +149,41 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
             ))}
           </div>
 
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Profils d'expédition</h3>
+            {isLoading ? (
+              <p>Chargement des profils d'expédition...</p>
+            ) : shippingProfiles.length > 0 ? (
+              <div className="space-y-2">
+                {shippingProfiles.map((profile) => (
+                  <div key={profile.id} className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      id={`shipping-${profile.id}`}
+                      name="shipping-profile"
+                      value={profile.id}
+                      checked={selectedShippingProfile === profile.id}
+                      onChange={(e) => setSelectedShippingProfile(e.target.value)}
+                      className="form-radio h-4 w-4 text-green-600"
+                    />
+                    <label htmlFor={`shipping-${profile.id}`} className="flex flex-col cursor-pointer">
+                      <span className="font-medium">{profile.name}</span>
+                      <div className="text-sm text-gray-600">
+                        {profile.price_based_shipping_rates?.map((rate: any) => (
+                          <div key={rate.id} className="mt-1">
+                            {rate.name}: {rate.price > 0 ? `${parseFloat(rate.price).toFixed(2)}€` : 'Gratuit'}
+                          </div>
+                        ))}
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>Aucun profil d'expédition disponible</p>
+            )}
+          </div>
+
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Poids total</span>
@@ -156,6 +222,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
           </div>
         </motion.div>
       </>
+
     </AnimatePresence>
   );
 }
