@@ -1,178 +1,201 @@
 import { NextResponse } from 'next/server';
+import { createShopifyClient } from '@/utils/shopifyAdmin';
 
-async function findOrUpdateCustomer(customer: any) {
-  try {
-    // Rechercher le client par email
-    const searchResponse = await fetch(
-      `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/customers/search.json?query=email:${customer.email}`,
-      {
-        headers: {
-          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+interface CustomerInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address1: string;
+  city: string;
+  postalCode: string;
+  country: string;
+}
 
-    if (!searchResponse.ok) {
-      throw new Error('Error searching for customer');
-    }
+interface ShippingLine {
+  title: string;
+  price: string;
+}
 
-    const searchData = await searchResponse.json();
-    let customerId;
+interface DiscountLine {
+  title: string;
+  amount: string;
+}
 
-    if (searchData.customers && searchData.customers.length > 0) {
-      // Mettre à jour le client existant
-      const existingCustomer = searchData.customers[0];
-      customerId = existingCustomer.id;
+interface DraftOrderInput {
+  lineItems: Array<{
+    variantId: string;
+    quantity: number;
+  }>;
+  email: string;
+  shippingLine: {
+    title: string;
+    price: string;
+  };
+  billingAddress: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    city: string;
+    zip: string;
+    country: string;
+    phone: string;
+  };
+  shippingAddress: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    city: string;
+    zip: string;
+    country: string;
+    phone: string;
+  };
+  appliedDiscount?: {
+    title: string;
+    value: string;
+    valueType: 'FIXED_AMOUNT';
+    description: string;
+  };
+}
 
-      const updateResponse = await fetch(
-        `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/customers/${customerId}.json`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customer: {
-              id: customerId,
-              first_name: customer.first_name,
-              last_name: customer.last_name,
-              email: customer.email,
-              phone: customer.phone,
-              accepts_marketing: customer.accepts_marketing,
-              accepts_marketing_updated_at: new Date().toISOString()
-            }
-          })
-        }
-      );
-
-      if (!updateResponse.ok) {
-        throw new Error('Error updating customer');
-      }
-
-      return customerId;
-    } else {
-      // Créer un nouveau client
-      const createResponse = await fetch(
-        `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/customers.json`,
-        {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customer: {
-              first_name: customer.first_name,
-              last_name: customer.last_name,
-              email: customer.email,
-              phone: customer.phone,
-              accepts_marketing: customer.accepts_marketing,
-              accepts_marketing_updated_at: new Date().toISOString()
-            }
-          })
-        }
-      );
-
-      if (!createResponse.ok) {
-        throw new Error('Error creating customer');
-      }
-
-      const createData = await createResponse.json();
-      return createData.customer.id;
-    }
-  } catch (error) {
-    console.error('Error in findOrUpdateCustomer:', error);
-    throw error;
-  }
+interface ShopifyResponse {
+  draftOrderCreate: {
+    draftOrder: {
+      id: string;
+      order?: {
+        id: string;
+      };
+    };
+    userErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { items, customer, shippingLine } = body;
+    const { items, shippingLine, discountLine, customer } = await request.json() as {
+      items: Record<string, { quantity: number }>;
+      shippingLine: ShippingLine;
+      discountLine?: DiscountLine;
+      customer: CustomerInfo;
+    };
+    
+    console.log('Creating draft order with:', { items, shippingLine, discountLine, customer });
 
-    console.log('Items reçus:', items);
-    console.log('Informations client reçues:', customer);
-    console.log('Frais d\'expédition reçus:', shippingLine);
+    const shopify = createShopifyClient();
 
-    // Convertir les items du panier en format Shopify
-    const line_items = Object.entries(items).map(([variantId, item]: [string, any]) => {
+    // Convertir les items du panier en ligne de commande Shopify
+    const lineItems = Object.entries(items).map(([variantId, item]) => {
       const numericId = variantId.split('/').pop()?.replace('ProductVariant/', '') || '';
-      console.log('Conversion variantId:', { original: variantId, numericId });
+      console.log('Converting variant:', { original: variantId, numeric: numericId });
       
       return {
-        variant_id: numericId,
+        variantId: `gid://shopify/ProductVariant/${numericId}`,
         quantity: item.quantity
       };
     });
 
-    // Trouver ou créer le client
-    const customerData = {
-      first_name: customer.firstName,
-      last_name: customer.lastName,
-      email: customer.email,
-      phone: customer.phone,
-      accepts_marketing: customer.acceptsMarketing
-    };
+    console.log('Prepared line items:', lineItems);
 
-    const customerId = await findOrUpdateCustomer(customerData);
-
-    const draftOrderData = {
-      draft_order: {
-        line_items,
-        note: "Commande créée depuis la borne automatique",
-        tags: "borne-auto",
-        customer: {
-          id: customerId
-        },
-        shipping_address: {
-          first_name: customer.firstName,
-          last_name: customer.lastName,
-          address1: customer.address1,
-          city: customer.city,
-          zip: customer.postalCode,
-          country: customer.country,
-          phone: customer.phone
-        },
-        shipping_line: {
-          title: shippingLine.title.includes('Colissimo') ? `${shippingLine.title} (ACTIVER MANUELLEMENT)` : shippingLine.title,
-          price: shippingLine.price,
-          custom: true
+    // Préparer la mutation GraphQL
+    const mutation = `
+      mutation draftOrderCreate($input: DraftOrderInput!) {
+        draftOrderCreate(input: $input) {
+          draftOrder {
+            id
+            order {
+              id
+            }
+          }
+          userErrors {
+            field
+            message
+          }
         }
       }
+    `;
+
+    // Construire les données de la commande
+    const draftOrderInput: DraftOrderInput = {
+      lineItems,
+      email: customer.email,
+      shippingLine: {
+        title: shippingLine.title,
+        price: shippingLine.price
+      },
+      billingAddress: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        address1: customer.address1,
+        city: customer.city,
+        zip: customer.postalCode,
+        country: customer.country,
+        phone: customer.phone
+      },
+      shippingAddress: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        address1: customer.address1,
+        city: customer.city,
+        zip: customer.postalCode,
+        country: customer.country,
+        phone: customer.phone
+      }
     };
 
-    console.log('Données envoyées à Shopify:', JSON.stringify(draftOrderData, null, 2));
+    // Ajouter la réduction si elle existe
+    if (discountLine) {
+      draftOrderInput.appliedDiscount = {
+        title: discountLine.title,
+        value: discountLine.amount,
+        valueType: 'FIXED_AMOUNT',
+        description: 'Réduction sur les frais de port'
+      };
+    }
 
-    const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/draft_orders.json`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(draftOrderData),
-      }
-    );
+    console.log('Sending to Shopify:', {
+      mutation,
+      input: JSON.stringify(draftOrderInput, null, 2)
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Shopify API error:', errorText);
+    // Envoyer la requête à Shopify
+    const response = await shopify.request<ShopifyResponse>(mutation, {
+      input: draftOrderInput
+    });
+
+    console.log('Shopify response:', response);
+
+    if (response.draftOrderCreate?.userErrors?.length > 0) {
+      const errors = response.draftOrderCreate.userErrors;
+      console.error('Shopify draft order errors:', errors);
+      return NextResponse.json({ error: errors[0].message }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      draft_order: response.draftOrderCreate?.draftOrder
+    });
+
+  } catch (error) {
+    console.error('Error in draft-orders API:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      details: error instanceof Error ? (error as any).response?.errors : undefined
+    });
+    
+    // Si c'est une erreur GraphQL, on retourne les détails
+    if (error instanceof Error && (error as any).response?.errors) {
+      const graphqlErrors = (error as any).response.errors;
       return NextResponse.json(
-        { error: `Shopify API error: ${errorText}` },
-        { status: response.status }
+        { error: graphqlErrors[0].message },
+        { status: 400 }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error creating draft order:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

@@ -64,6 +64,7 @@ async function getShippingRatesForZone(zone: any, weightInKg: number) {
     .map(({ rate }) => ({
       service_name: rate.name,
       service_code: `${rate.id}`,
+      handle: rate.id.toString(), 
       price: rate.price,
       currency: 'EUR'
     }));

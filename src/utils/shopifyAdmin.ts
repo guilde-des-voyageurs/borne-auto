@@ -10,12 +10,10 @@ export function createShopifyClient() {
 
   const endpoint = `https://${shopifyDomain}/admin/api/2024-01/graphql.json`;
 
-  const client = new GraphQLClient(endpoint, {
+  return new GraphQLClient(endpoint, {
     headers: {
       'X-Shopify-Access-Token': accessToken,
       'Content-Type': 'application/json',
     },
   });
-
-  return client;
 }

@@ -34,6 +34,7 @@ interface ShippingRate {
   service_name: string;
   price: string;
   currency: string;
+  handle: string;
 }
 
 interface CartSummaryModalProps {
@@ -47,6 +48,7 @@ interface CartSummaryModalProps {
   onCreateDraftOrder: (options: { 
     customer: CustomerInfo,
     shippingLine: { 
+      shippingRateId: string;
       title: string;
       price: string;
     }
@@ -188,30 +190,33 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     );
   };
 
-  const handleCreateDraftOrder = async () => {
-    if (!isCustomerInfoValid()) {
-      alert('Veuillez remplir tous les champs du formulaire client');
-      return;
-    }
-
-    if (!selectedShippingRate) {
-      alert('Veuillez sélectionner une méthode d\'expédition');
-      return;
-    }
-
-    setIsCreatingOrder(true);
-    setError(null);
-
+  const handleCreateOrder = async () => {
     try {
+      setIsCreatingOrder(true);
+      setError(null);
+
+      if (!selectedShippingRate) {
+        setError("Veuillez sélectionner une méthode d'expédition");
+        setIsCreatingOrder(false);
+        return;
+      }
+
+      // Préparer les données d'expédition
+      const shippingLine = {
+        shippingRateId: selectedShippingRate.handle, // Utiliser le handle comme ID
+        title: selectedShippingRate.service_name,
+        price: selectedShippingRate.price
+      };
+
+      // Créer la commande
       await onCreateDraftOrder({
         customer: customerInfo,
-        shippingLine: {
-          title: selectedShippingRate.service_name,
-          price: selectedShippingRate.price
-        }
+        shippingLine
       });
+
       onClose();
     } catch (error) {
+      console.error('Error creating order:', error);
       setError(error instanceof Error ? error.message : 'Une erreur est survenue');
     } finally {
       setIsCreatingOrder(false);
@@ -522,7 +527,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                   <button
                     type="button"
                     className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2"
-                    onClick={handleCreateDraftOrder}
+                    onClick={handleCreateOrder}
                     disabled={isCreatingOrder}
                   >
                     {isCreatingOrder ? 'Création...' : 'Créer la commande'}
