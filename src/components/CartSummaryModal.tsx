@@ -251,243 +251,261 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
               <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div>
-                  <div className="mt-3 text-center sm:mt-5">
-                    <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
-                      Résumé de la commande
-                    </Dialog.Title>
-                    <div className="mt-2">
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-900">Articles</h4>
-                        <ul className="mt-2 divide-y divide-gray-200">
-                          {Object.values(state.items).map((item) => (
-                            <li key={item.productId} className="flex items-center justify-between py-2">
-                              <div className="flex items-center">
-                                <span className="ml-2 text-sm text-gray-500">{item.title}</span>
-                                <span className="ml-1 text-sm text-gray-500">({item.quantity}x)</span>
-                              </div>
-                              <span className="text-sm font-medium text-gray-900">
-                                {(parseFloat(item.price) * item.quantity).toFixed(2)} €
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                <div className="flex justify-between items-center mb-4">
+                  <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                    Résumé de la commande
+                  </Dialog.Title>
+                  <button
+                    onClick={() => {
+                      setCustomerInfo({
+                        firstName: "Uriel",
+                        lastName: "Lahoussaye",
+                        email: "uriel@lahoussaye.fr",
+                        phone: "06 19 93 43 28",
+                        address1: "421 Chemin du Baudaric",
+                        city: "Contes",
+                        postalCode: "06390",
+                        country: "France",
+                        acceptsMarketing: false
+                      });
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
+                  >
+                    Remplir mes infos
+                  </button>
+                </div>
+                <div className="mt-3 text-center sm:mt-5">
+                  <div className="mt-2">
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-900">Articles</h4>
+                      <ul className="mt-2 divide-y divide-gray-200">
+                        {Object.values(state.items).map((item) => (
+                          <li key={item.productId} className="flex items-center justify-between py-2">
+                            <div className="flex items-center">
+                              <span className="ml-2 text-sm text-gray-500">{item.title}</span>
+                              <span className="ml-1 text-sm text-gray-500">({item.quantity}x)</span>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {(parseFloat(item.price) * item.quantity).toFixed(2)} €
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
 
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-900">Informations client</h4>
-                        <div className="mt-2 grid grid-cols-2 gap-4">
-                          <div>
-                            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                              Prénom
-                            </label>
-                            <input
-                              type="text"
-                              name="firstName"
-                              id="firstName"
-                              value={customerInfo.firstName}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                              Nom
-                            </label>
-                            <input
-                              type="text"
-                              name="lastName"
-                              id="lastName"
-                              value={customerInfo.lastName}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              name="email"
-                              id="email"
-                              value={customerInfo.email}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                              Téléphone
-                            </label>
-                            <input
-                              type="tel"
-                              name="phone"
-                              id="phone"
-                              value={customerInfo.phone}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <label htmlFor="address1" className="block text-sm font-medium text-gray-700">
-                              Adresse
-                            </label>
-                            <input
-                              type="text"
-                              name="address1"
-                              id="address1"
-                              value={customerInfo.address1}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                              Ville
-                            </label>
-                            <input
-                              type="text"
-                              name="city"
-                              id="city"
-                              value={customerInfo.city}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
-                              Code postal
-                            </label>
-                            <input
-                              type="text"
-                              name="postalCode"
-                              id="postalCode"
-                              value={customerInfo.postalCode}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-                              Pays
-                            </label>
-                            <select
-                              id="country"
-                              name="country"
-                              value={customerInfo.country}
-                              onChange={handleCustomerInfoChange}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            >
-                              <option value="">Sélectionnez un pays</option>
-                              <option value="FR">France</option>
-                              <option value="BE">Belgique</option>
-                              <option value="LU">Luxembourg</option>
-                              <option value="DE">Allemagne</option>
-                              <option value="IT">Italie</option>
-                              <option value="ES">Espagne</option>
-                            </select>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="flex items-start">
-                              <div className="flex h-5 items-center">
-                                <input
-                                  id="acceptsMarketing"
-                                  name="acceptsMarketing"
-                                  type="checkbox"
-                                  checked={customerInfo.acceptsMarketing}
-                                  onChange={handleCustomerInfoChange}
-                                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                />
-                              </div>
-                              <div className="ml-3 text-sm">
-                                <label htmlFor="acceptsMarketing" className="font-medium text-gray-700">
-                                  Accepter de recevoir des communications marketing
-                                </label>
-                              </div>
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-900">Informations client</h4>
+                      <div className="mt-2 grid grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                            Prénom
+                          </label>
+                          <input
+                            type="text"
+                            name="firstName"
+                            id="firstName"
+                            value={customerInfo.firstName}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                            Nom
+                          </label>
+                          <input
+                            type="text"
+                            name="lastName"
+                            id="lastName"
+                            value={customerInfo.lastName}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            value={customerInfo.email}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                            Téléphone
+                          </label>
+                          <input
+                            type="tel"
+                            name="phone"
+                            id="phone"
+                            value={customerInfo.phone}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label htmlFor="address1" className="block text-sm font-medium text-gray-700">
+                            Adresse
+                          </label>
+                          <input
+                            type="text"
+                            name="address1"
+                            id="address1"
+                            value={customerInfo.address1}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                            Ville
+                          </label>
+                          <input
+                            type="text"
+                            name="city"
+                            id="city"
+                            value={customerInfo.city}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
+                            Code postal
+                          </label>
+                          <input
+                            type="text"
+                            name="postalCode"
+                            id="postalCode"
+                            value={customerInfo.postalCode}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                            Pays
+                          </label>
+                          <select
+                            id="country"
+                            name="country"
+                            value={customerInfo.country}
+                            onChange={handleCustomerInfoChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          >
+                            <option value="">Sélectionnez un pays</option>
+                            <option value="FR">France</option>
+                            <option value="BE">Belgique</option>
+                            <option value="LU">Luxembourg</option>
+                            <option value="DE">Allemagne</option>
+                            <option value="IT">Italie</option>
+                            <option value="ES">Espagne</option>
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="flex items-start">
+                            <div className="flex h-5 items-center">
+                              <input
+                                id="acceptsMarketing"
+                                name="acceptsMarketing"
+                                type="checkbox"
+                                checked={customerInfo.acceptsMarketing}
+                                onChange={handleCustomerInfoChange}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                            </div>
+                            <div className="ml-3 text-sm">
+                              <label htmlFor="acceptsMarketing" className="font-medium text-gray-700">
+                                Accepter de recevoir des communications marketing
+                              </label>
                             </div>
                           </div>
                         </div>
                       </div>
+                    </div>
 
-                      {customerInfo.country && (
-                        <div className="mt-4">
-                          <h4 className="text-sm font-medium text-gray-900">Impression et livraison</h4>
-                          <p className="text-sm text-gray-500 mt-1">Impression et livraison entre 10 et 15 jours ouvrés</p>
-                          <div className="mt-2 space-y-2">
-                            {isLoadingShippingRates ? (
-                              <p className="text-sm text-gray-500">
-                                Calcul des frais d'impression et de port...
-                              </p>
-                            ) : shippingRates && shippingRates.length > 0 ? (
-                              // Trier les méthodes par prix
-                              [...shippingRates]
-                                .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
-                                .map((rate) => (
-                                  <div key={rate.service_code} className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      id={rate.service_code}
-                                      name="shippingRate"
-                                      value={rate.service_code}
-                                      checked={selectedShippingRate?.service_code === rate.service_code}
-                                      onChange={() => {
-                                        console.log('Selecting shipping rate:', rate);
-                                        setSelectedShippingRate(rate);
-                                      }}
-                                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    />
-                                    <label htmlFor={rate.service_code} className="ml-3 flex justify-between w-full">
-                                      <span className="text-sm text-gray-900">
-                                        Impression et {rate.service_name.toLowerCase()}
-                                      </span>
-                                      <span className="text-sm font-medium text-gray-900">
-                                        {parseFloat(rate.price).toFixed(2)} €
-                                      </span>
-                                    </label>
-                                  </div>
-                                ))
-                            ) : (
-                              <div className="text-sm text-gray-500">
-                                <p className="mb-2">
-                                  Aucune méthode d'impression et de livraison disponible pour cette destination avec le poids actuel du panier.
-                                </p>
-                                <p>
-                                  Poids total : {Object.values(state.items).reduce((total, item) => {
-                                    const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
-                                    return total + (weightInKg * item.quantity);
-                                  }, 0).toFixed(2)} kg
-                                </p>
-                                <p className="mt-1">
-                                  Veuillez ajuster la quantité de vos articles ou nous contacter pour une expédition personnalisée.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
+                    {customerInfo.country && (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-900">Résumé</h4>
+                        <h4 className="text-sm font-medium text-gray-900">Impression et livraison</h4>
+                        <p className="text-sm text-gray-500 mt-1">Impression et livraison entre 10 et 15 jours ouvrés</p>
                         <div className="mt-2 space-y-2">
-                          <div className="flex justify-between text-sm text-gray-500">
-                            <span>Sous-total</span>
-                            <span>{state.total.toFixed(2)} €</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-gray-500">
-                            <span>Poids total</span>
-                            <span>{totalWeight.toFixed(2)} kg</span>
-                          </div>
-                          {selectedShippingRate && (
-                            <div className="flex justify-between text-sm text-gray-500">
-                              <span>Frais d'impression et de port ({selectedShippingRate.service_name})</span>
-                              <span>{parseFloat(selectedShippingRate.price).toFixed(2)} €</span>
+                          {isLoadingShippingRates ? (
+                            <p className="text-sm text-gray-500">
+                              Calcul des frais d'impression et de port...
+                            </p>
+                          ) : shippingRates && shippingRates.length > 0 ? (
+                            // Trier les méthodes par prix
+                            [...shippingRates]
+                              .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+                              .map((rate) => (
+                                <div key={rate.service_code} className="flex items-center">
+                                  <input
+                                    type="radio"
+                                    id={rate.service_code}
+                                    name="shippingRate"
+                                    value={rate.service_code}
+                                    checked={selectedShippingRate?.service_code === rate.service_code}
+                                    onChange={() => {
+                                      console.log('Selecting shipping rate:', rate);
+                                      setSelectedShippingRate(rate);
+                                    }}
+                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  <label htmlFor={rate.service_code} className="ml-3 flex justify-between w-full">
+                                    <span className="text-sm text-gray-900">
+                                      Impression et {rate.service_name.toLowerCase()}
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {parseFloat(rate.price).toFixed(2)} €
+                                    </span>
+                                  </label>
+                                </div>
+                              ))
+                          ) : (
+                            <div className="text-sm text-gray-500">
+                              <p className="mb-2">
+                                Aucune méthode d'impression et de livraison disponible pour cette destination avec le poids actuel du panier.
+                              </p>
+                              <p>
+                                Poids total : {Object.values(state.items).reduce((total, item) => {
+                                  const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
+                                  return total + (weightInKg * item.quantity);
+                                }, 0).toFixed(2)} kg
+                              </p>
+                              <p className="mt-1">
+                                Veuillez ajuster la quantité de vos articles ou nous contacter pour une expédition personnalisée.
+                              </p>
                             </div>
                           )}
-                          <div className="flex justify-between text-sm font-medium text-gray-900">
-                            <span>Total</span>
-                            <span>{calculateTotal().toFixed(2)} €</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-900">Résumé</h4>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>Sous-total</span>
+                          <span>{state.total.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>Poids total</span>
+                          <span>{totalWeight.toFixed(2)} kg</span>
+                        </div>
+                        {selectedShippingRate && (
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>Frais d'impression et de port ({selectedShippingRate.service_name})</span>
+                            <span>{parseFloat(selectedShippingRate.price).toFixed(2)} €</span>
                           </div>
+                        )}
+                        <div className="flex justify-between text-sm font-medium text-gray-900">
+                          <span>Total</span>
+                          <span>{calculateTotal().toFixed(2)} €</span>
                         </div>
                       </div>
                     </div>
