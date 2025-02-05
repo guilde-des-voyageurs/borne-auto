@@ -4,7 +4,6 @@ import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import CartSummaryModal from './CartSummaryModal';
-import { createDraftOrder } from '../utils/shopifyDraft';
 
 interface Customer {
   firstName: string;
@@ -16,15 +15,6 @@ interface Customer {
   postalCode: string;
   country: string;
   acceptsMarketing: boolean;
-}
-
-interface DraftOrderOptions {
-  shippingLine: {
-    title: string;
-    shippingRateId: string;
-    price: string;
-  };
-  customer: Customer;
 }
 
 export default function Cart() {
@@ -59,17 +49,29 @@ export default function Cart() {
     }, 0);
   };
 
-  const handleCreateDraftOrder = async (options: DraftOrderOptions) => {
+  const handleCreateDraftOrder = async (options: { customer: Customer }) => {
     try {
-      await createDraftOrder({
-        items: state.items,
-        shippingLine: options.shippingLine,
-        customer: options.customer
+      const response = await fetch('/api/draft-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: state.items,
+          customer: options.customer
+        }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create draft order');
+      }
+
       dispatch({ type: 'CLEAR_CART' });
       setShowSummary(false);
     } catch (error) {
       console.error('Error creating draft order:', error);
+      throw error;
     }
   };
 
