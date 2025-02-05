@@ -77,10 +77,12 @@ export default function Cart() {
       const draftOrderId = data.draft_order.id.toString();
       console.log('Draft order ID:', draftOrderId);
       
-      setCurrentDraftOrderId(draftOrderId);
+      // Vider le panier avant la redirection
       dispatch({ type: 'CLEAR_CART' });
-      setShowSummary(false);
-      setShowShippingRates(true);
+      
+      // Rediriger vers la nouvelle page au lieu d'ouvrir la modal
+      window.location.href = `/draft-order-created/${draftOrderId}`;
+      
     } catch (error) {
       console.error('Error creating draft order:', error);
       throw error;
