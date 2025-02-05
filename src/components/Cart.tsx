@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import CartSummaryModal from './CartSummaryModal';
+import ShippingRatesModal from './ShippingRatesModal';
 
 interface Customer {
   firstName: string;
@@ -20,6 +21,8 @@ interface Customer {
 export default function Cart() {
   const { state, dispatch } = useCart();
   const [showSummary, setShowSummary] = useState(false);
+  const [showShippingRates, setShowShippingRates] = useState(false);
+  const [currentDraftOrderId, setCurrentDraftOrderId] = useState<string | null>(null);
 
   const updateQuantity = (variantId: string, quantity: number) => {
     if (quantity < 1) {
@@ -67,8 +70,17 @@ export default function Cart() {
         throw new Error(error.message || 'Failed to create draft order');
       }
 
+      const data = await response.json();
+      console.log('Draft order created:', data);
+      
+      // Extraire l'ID de la commande provisoire
+      const draftOrderId = data.draft_order.id.toString();
+      console.log('Draft order ID:', draftOrderId);
+      
+      setCurrentDraftOrderId(draftOrderId);
       dispatch({ type: 'CLEAR_CART' });
       setShowSummary(false);
+      setShowShippingRates(true);
     } catch (error) {
       console.error('Error creating draft order:', error);
       throw error;
@@ -174,13 +186,25 @@ export default function Cart() {
         ) : null}
       </AnimatePresence>
 
-      {/* Modal de résumé */}
-      <CartSummaryModal
-        isOpen={showSummary}
-        onClose={() => setShowSummary(false)}
-        state={state}
-        onCreateDraftOrder={handleCreateDraftOrder}
-      />
+      <AnimatePresence>
+        {showSummary && (
+          <CartSummaryModal
+            isOpen={showSummary}
+            onClose={() => setShowSummary(false)}
+            state={state}
+            onCreateDraftOrder={handleCreateDraftOrder}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Modal des méthodes d'expédition */}
+      {currentDraftOrderId && (
+        <ShippingRatesModal
+          isOpen={showShippingRates}
+          onClose={() => setShowShippingRates(false)}
+          draftOrderId={currentDraftOrderId}
+        />
+      )}
     </>
   );
 }
