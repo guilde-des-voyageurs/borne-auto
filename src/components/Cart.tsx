@@ -54,34 +54,47 @@ export default function Cart() {
 
   const handleCreateDraftOrder = async (options: { customer: Customer }) => {
     try {
+      // Convertir les items en format attendu par l'API
+      const line_items = Object.entries(state.items).map(([variantId, item]) => {
+        // Extraire l'ID de la variante du gid
+        const extractedVariantId = variantId.split('/').pop() || '';
+        console.log('Processing variant:', {
+          original: variantId,
+          extracted: extractedVariantId
+        });
+        
+        return {
+          variant_id: extractedVariantId,
+          quantity: item.quantity
+        };
+      });
+
+      console.log('Sending line_items:', line_items);
+
       const response = await fetch('/api/draft-orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: state.items,
+          line_items,
           customer: options.customer
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('API error:', error);
         throw new Error(error.message || 'Failed to create draft order');
       }
 
       const data = await response.json();
-      console.log('Draft order created:', data);
-      
-      // Extraire l'ID de la commande provisoire
-      const draftOrderId = data.draft_order.id.toString();
-      console.log('Draft order ID:', draftOrderId);
       
       // Vider le panier avant la redirection
       dispatch({ type: 'CLEAR_CART' });
       
       // Rediriger vers la nouvelle page au lieu d'ouvrir la modal
-      window.location.href = `/draft-order-created/${draftOrderId}`;
+      window.location.href = `/draft-order-created/${data.draft_order.id}`;
       
     } catch (error) {
       console.error('Error creating draft order:', error);

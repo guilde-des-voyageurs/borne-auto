@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
     if (!process.env.SHOPIFY_STORE_URL || !process.env.SHOPIFY_ACCESS_TOKEN) {
       throw new Error('Missing Shopify credentials');
     }
 
-    const draftOrderId = params.id;
+    const resolvedParams = await params;
+    const draftOrderId = resolvedParams.id;
 
     const response = await fetch(
       `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders/${draftOrderId}.json`,
