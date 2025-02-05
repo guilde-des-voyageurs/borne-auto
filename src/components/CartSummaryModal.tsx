@@ -412,39 +412,56 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
 
                       {customerInfo.country && (
                         <div className="mt-4">
-                          <h4 className="text-sm font-medium text-gray-900">Méthode d'expédition</h4>
+                          <h4 className="text-sm font-medium text-gray-900">Impression et livraison</h4>
+                          <p className="text-sm text-gray-500 mt-1">Impression et livraison entre 10 et 15 jours ouvrés</p>
                           <div className="mt-2 space-y-2">
                             {isLoadingShippingRates ? (
                               <p className="text-sm text-gray-500">
-                                Chargement des frais de port...
+                                Calcul des frais d'impression et de port...
                               </p>
                             ) : shippingRates && shippingRates.length > 0 ? (
-                              shippingRates.map((rate) => (
-                                <div key={rate.service_code} className="flex items-center">
-                                  <input
-                                    type="radio"
-                                    id={rate.service_code}
-                                    name="shippingRate"
-                                    value={rate.service_code}
-                                    checked={selectedShippingRate?.service_code === rate.service_code}
-                                    onChange={() => {
-                                      console.log('Selecting shipping rate:', rate);
-                                      setSelectedShippingRate(rate);
-                                    }}
-                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                  />
-                                  <label htmlFor={rate.service_code} className="ml-3 flex justify-between w-full">
-                                    <span className="text-sm text-gray-900">{rate.service_name}</span>
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {parseFloat(rate.price).toFixed(2)} €
-                                    </span>
-                                  </label>
-                                </div>
-                              ))
+                              // Trier les méthodes par prix
+                              [...shippingRates]
+                                .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+                                .map((rate) => (
+                                  <div key={rate.service_code} className="flex items-center">
+                                    <input
+                                      type="radio"
+                                      id={rate.service_code}
+                                      name="shippingRate"
+                                      value={rate.service_code}
+                                      checked={selectedShippingRate?.service_code === rate.service_code}
+                                      onChange={() => {
+                                        console.log('Selecting shipping rate:', rate);
+                                        setSelectedShippingRate(rate);
+                                      }}
+                                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <label htmlFor={rate.service_code} className="ml-3 flex justify-between w-full">
+                                      <span className="text-sm text-gray-900">
+                                        Impression et {rate.service_name.toLowerCase()}
+                                      </span>
+                                      <span className="text-sm font-medium text-gray-900">
+                                        {parseFloat(rate.price).toFixed(2)} €
+                                      </span>
+                                    </label>
+                                  </div>
+                                ))
                             ) : (
-                              <p className="text-sm text-gray-500">
-                                Aucune méthode d'expédition disponible pour cette destination
-                              </p>
+                              <div className="text-sm text-gray-500">
+                                <p className="mb-2">
+                                  Aucune méthode d'impression et de livraison disponible pour cette destination avec le poids actuel du panier.
+                                </p>
+                                <p>
+                                  Poids total : {Object.values(state.items).reduce((total, item) => {
+                                    const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
+                                    return total + (weightInKg * item.quantity);
+                                  }, 0).toFixed(2)} kg
+                                </p>
+                                <p className="mt-1">
+                                  Veuillez ajuster la quantité de vos articles ou nous contacter pour une expédition personnalisée.
+                                </p>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -463,7 +480,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                           </div>
                           {selectedShippingRate && (
                             <div className="flex justify-between text-sm text-gray-500">
-                              <span>Frais de port ({selectedShippingRate.service_name})</span>
+                              <span>Frais d'impression et de port ({selectedShippingRate.service_name})</span>
                               <span>{parseFloat(selectedShippingRate.price).toFixed(2)} €</span>
                             </div>
                           )}
