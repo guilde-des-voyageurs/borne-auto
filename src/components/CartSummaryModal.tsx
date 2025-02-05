@@ -29,6 +29,13 @@ interface CustomerInfo {
   country: string;
 }
 
+interface ShippingRate {
+  service_code: string;
+  service_name: string;
+  price: string;
+  currency: string;
+}
+
 interface CartSummaryModalProps {
   onClose: () => void;
   state: {
@@ -63,14 +70,102 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     country: ''
   });
 
+  // État pour gérer le chargement des frais de port
+  const [isLoadingShippingRates, setIsLoadingShippingRates] = useState(false);
+
   // Récupérer les frais d'expédition lorsque le pays change
   useEffect(() => {
-    if (customerInfo.country) {
-      const rates = getShippingRates(customerInfo.country);
-      setShippingRates(rates);
-      setSelectedShippingRate(null);
+    async function fetchShippingRates() {
+      if (customerInfo.country && customerInfo.city && customerInfo.postalCode) {
+        setIsLoadingShippingRates(true);
+        try {
+          const cartItems = Object.entries(state.items).map(([variantId, item]) => {
+            const itemWeight = parseFloat(item.weight) || 0;
+            console.log('Processing item for shipping:', {
+              variant_id: variantId,
+              raw_weight: itemWeight,
+              unit: item.weight_unit,
+              weight_in_kg: item.weight_unit === 'g' ? itemWeight / 1000 : itemWeight,
+              quantity: item.quantity
+            });
+            
+            return {
+              variant_id: variantId.split('/').pop()?.replace('ProductVariant/', '') || '',
+              quantity: item.quantity,
+              weight: itemWeight,
+              weight_unit: item.weight_unit || 'kg'
+            };
+          });
+
+          const totalWeightKg = cartItems.reduce((sum, item) => {
+            const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
+            return sum + (weightInKg * item.quantity);
+          }, 0);
+
+          console.log('Fetching shipping rates with:', {
+            address: {
+              country: customerInfo.country,
+              city: customerInfo.city,
+              zip: customerInfo.postalCode
+            },
+            items: cartItems,
+            total_weight_kg: totalWeightKg
+          });
+
+          const response = await fetch('/api/shipping-rates', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              address: {
+                country: customerInfo.country,
+                city: customerInfo.city,
+                zip: customerInfo.postalCode
+              },
+              items: cartItems
+            }),
+          });
+
+          console.log('Raw response:', response);
+          const responseText = await response.text();
+          console.log('Response text:', responseText);
+
+          let data;
+          try {
+            data = JSON.parse(responseText);
+            console.log('Parsed response data:', data);
+            
+            if (Array.isArray(data.shipping_rates)) {
+              console.log('Setting shipping rates array:', data.shipping_rates);
+              setShippingRates(data.shipping_rates);
+              setSelectedShippingRate(null);
+            } else {
+              console.error('shipping_rates is not an array:', data.shipping_rates);
+              setShippingRates([]);
+            }
+          } catch (e) {
+            console.error('Failed to parse response:', e);
+            throw e;
+          }
+
+        } catch (error) {
+          console.error('Error fetching shipping rates:', error);
+          setError('Impossible de récupérer les frais de port');
+        } finally {
+          setIsLoadingShippingRates(false);
+        }
+      }
     }
-  }, [customerInfo.country]);
+
+    fetchShippingRates();
+  }, [customerInfo.country, customerInfo.city, customerInfo.postalCode, state.items]);
+
+  // Afficher le poids total dans l'interface
+  const totalWeight = Object.values(state.items).reduce((total, item) => {
+    const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
+    return total + (weightInKg * item.quantity);
+  }, 0);
 
   const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -111,7 +206,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
       await onCreateDraftOrder({
         customer: customerInfo,
         shippingLine: {
-          title: selectedShippingRate.name,
+          title: selectedShippingRate.service_name,
           price: selectedShippingRate.price
         }
       });
@@ -319,20 +414,27 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                         <div className="mt-4">
                           <h4 className="text-sm font-medium text-gray-900">Méthode d'expédition</h4>
                           <div className="mt-2 space-y-2">
-                            {shippingRates.length > 0 ? (
+                            {isLoadingShippingRates ? (
+                              <p className="text-sm text-gray-500">
+                                Chargement des frais de port...
+                              </p>
+                            ) : shippingRates && shippingRates.length > 0 ? (
                               shippingRates.map((rate) => (
-                                <div key={rate.id} className="flex items-center">
+                                <div key={rate.service_code} className="flex items-center">
                                   <input
                                     type="radio"
-                                    id={rate.id}
+                                    id={rate.service_code}
                                     name="shippingRate"
-                                    value={rate.id}
-                                    checked={selectedShippingRate?.id === rate.id}
-                                    onChange={() => setSelectedShippingRate(rate)}
+                                    value={rate.service_code}
+                                    checked={selectedShippingRate?.service_code === rate.service_code}
+                                    onChange={() => {
+                                      console.log('Selecting shipping rate:', rate);
+                                      setSelectedShippingRate(rate);
+                                    }}
                                     className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                   />
-                                  <label htmlFor={rate.id} className="ml-3 flex justify-between w-full">
-                                    <span className="text-sm text-gray-900">{rate.name}</span>
+                                  <label htmlFor={rate.service_code} className="ml-3 flex justify-between w-full">
+                                    <span className="text-sm text-gray-900">{rate.service_name}</span>
                                     <span className="text-sm font-medium text-gray-900">
                                       {parseFloat(rate.price).toFixed(2)} €
                                     </span>
@@ -348,22 +450,27 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                         </div>
                       )}
 
-                      <div className="mt-4 border-t pt-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Sous-total</span>
-                          <span className="font-medium text-gray-900">{state.total.toFixed(2)} €</span>
-                        </div>
-                        {selectedShippingRate && (
-                          <div className="flex justify-between text-sm mt-2">
-                            <span className="text-gray-500">Frais d'expédition</span>
-                            <span className="font-medium text-gray-900">
-                              {parseFloat(selectedShippingRate.price).toFixed(2)} €
-                            </span>
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-900">Résumé</h4>
+                        <div className="mt-2 space-y-2">
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>Sous-total</span>
+                            <span>{state.total.toFixed(2)} €</span>
                           </div>
-                        )}
-                        <div className="flex justify-between text-base font-medium text-gray-900 mt-4">
-                          <span>Total</span>
-                          <span>{calculateTotal().toFixed(2)} €</span>
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>Poids total</span>
+                            <span>{totalWeight.toFixed(2)} kg</span>
+                          </div>
+                          {selectedShippingRate && (
+                            <div className="flex justify-between text-sm text-gray-500">
+                              <span>Frais de port ({selectedShippingRate.service_name})</span>
+                              <span>{parseFloat(selectedShippingRate.price).toFixed(2)} €</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm font-medium text-gray-900">
+                            <span>Total</span>
+                            <span>{calculateTotal().toFixed(2)} €</span>
+                          </div>
                         </div>
                       </div>
                     </div>
