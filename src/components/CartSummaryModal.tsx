@@ -1,10 +1,9 @@
 'use client';
 
-import React, { Fragment, useEffect } from 'react';
+import React, { Fragment } from 'react';
 import { useCart } from '../context/CartContext';
 import { useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { getShippingRates, type ShippingRate } from '../utils/shippingRates';
 
 interface CartItem {
   productId: string;
@@ -29,37 +28,24 @@ interface CustomerInfo {
   country: string;
 }
 
-interface ShippingRate {
-  service_code: string;
-  service_name: string;
-  price: string;
-  currency: string;
-  handle: string;
+interface CartItems {
+  [variantId: string]: CartItem;
 }
 
 interface CartSummaryModalProps {
+  isOpen: boolean;
   onClose: () => void;
   state: {
-    items: {
-      [variantId: string]: CartItem;
-    };
-    total: number;
+    items: CartItems;
   };
   onCreateDraftOrder: (options: { 
-    customer: CustomerInfo,
-    shippingLine: { 
-      shippingRateId: string;
-      title: string;
-      price: string;
-    }
+    customer: CustomerInfo
   }) => Promise<void>;
 }
 
-export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
+export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
-  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     firstName: '',
     lastName: '',
@@ -69,105 +55,8 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
     city: '',
     postalCode: '',
     acceptsMarketing: false,
-    country: ''
+    country: 'FR'
   });
-
-  // État pour gérer le chargement des frais de port
-  const [isLoadingShippingRates, setIsLoadingShippingRates] = useState(false);
-
-  // Récupérer les frais d'expédition lorsque le pays change
-  useEffect(() => {
-    async function fetchShippingRates() {
-      if (customerInfo.country && customerInfo.city && customerInfo.postalCode) {
-        setIsLoadingShippingRates(true);
-        try {
-          const cartItems = Object.entries(state.items).map(([variantId, item]) => {
-            const itemWeight = parseFloat(item.weight) || 0;
-            console.log('Processing item for shipping:', {
-              variant_id: variantId,
-              raw_weight: itemWeight,
-              unit: item.weight_unit,
-              weight_in_kg: item.weight_unit === 'g' ? itemWeight / 1000 : itemWeight,
-              quantity: item.quantity
-            });
-            
-            return {
-              variant_id: variantId.split('/').pop()?.replace('ProductVariant/', '') || '',
-              quantity: item.quantity,
-              weight: itemWeight,
-              weight_unit: item.weight_unit || 'kg'
-            };
-          });
-
-          const totalWeightKg = cartItems.reduce((sum, item) => {
-            const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
-            return sum + (weightInKg * item.quantity);
-          }, 0);
-
-          console.log('Fetching shipping rates with:', {
-            address: {
-              country: customerInfo.country,
-              city: customerInfo.city,
-              zip: customerInfo.postalCode
-            },
-            items: cartItems,
-            total_weight_kg: totalWeightKg
-          });
-
-          const response = await fetch('/api/shipping-rates', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              address: {
-                country: customerInfo.country,
-                city: customerInfo.city,
-                zip: customerInfo.postalCode
-              },
-              items: cartItems
-            }),
-          });
-
-          console.log('Raw response:', response);
-          const responseText = await response.text();
-          console.log('Response text:', responseText);
-
-          let data;
-          try {
-            data = JSON.parse(responseText);
-            console.log('Parsed response data:', data);
-            
-            if (Array.isArray(data.shipping_rates)) {
-              console.log('Setting shipping rates array:', data.shipping_rates);
-              setShippingRates(data.shipping_rates);
-              setSelectedShippingRate(null);
-            } else {
-              console.error('shipping_rates is not an array:', data.shipping_rates);
-              setShippingRates([]);
-            }
-          } catch (e) {
-            console.error('Failed to parse response:', e);
-            throw e;
-          }
-
-        } catch (error) {
-          console.error('Error fetching shipping rates:', error);
-          setError('Impossible de récupérer les frais de port');
-        } finally {
-          setIsLoadingShippingRates(false);
-        }
-      }
-    }
-
-    fetchShippingRates();
-  }, [customerInfo.country, customerInfo.city, customerInfo.postalCode, state.items]);
-
-  // Afficher le poids total dans l'interface
-  const totalWeight = Object.values(state.items).reduce((total, item) => {
-    const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
-    return total + (weightInKg * item.quantity);
-  }, 0);
 
   const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -195,23 +84,14 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
       setIsCreatingOrder(true);
       setError(null);
 
-      if (!selectedShippingRate) {
-        setError("Veuillez sélectionner une méthode d'expédition");
+      if (!isCustomerInfoValid()) {
+        setError("Veuillez remplir tous les champs obligatoires");
         setIsCreatingOrder(false);
         return;
       }
 
-      // Préparer les données d'expédition
-      const shippingLine = {
-        shippingRateId: selectedShippingRate.handle, // Utiliser le handle comme ID
-        title: selectedShippingRate.service_name,
-        price: selectedShippingRate.price
-      };
-
-      // Créer la commande
       await onCreateDraftOrder({
-        customer: customerInfo,
-        shippingLine
+        customer: customerInfo
       });
 
       onClose();
@@ -224,13 +104,13 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
   };
 
   const calculateTotal = () => {
-    const subtotal = state.total;
-    const shippingCost = selectedShippingRate ? parseFloat(selectedShippingRate.price) : 0;
-    return subtotal + shippingCost;
+    return Object.values(state.items).reduce((total, item) => {
+      return total + (parseFloat(item.price) * item.quantity);
+    }, 0);
   };
 
   return (
-    <Transition.Root show={true} as={Fragment}>
+    <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={onClose}>
         <Transition.Child
           as={Fragment}
@@ -270,7 +150,7 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                         address1: "421 Chemin du Baudaric",
                         city: "Contes",
                         postalCode: "06390",
-                        country: "France",
+                        country: "FR",
                         acceptsMarketing: false
                       });
                     }}
@@ -434,80 +314,13 @@ export default function CartSummaryModal({ onClose, state, onCreateDraftOrder }:
                       </div>
                     </div>
 
-                    {customerInfo.country && (
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-900">Impression et livraison</h4>
-                        <p className="text-sm text-gray-500 mt-1">Impression et livraison entre 10 et 15 jours ouvrés</p>
-                        <div className="mt-2 space-y-2">
-                          {isLoadingShippingRates ? (
-                            <p className="text-sm text-gray-500">
-                              Calcul des frais d'impression et de port...
-                            </p>
-                          ) : shippingRates && shippingRates.length > 0 ? (
-                            // Trier les méthodes par prix
-                            [...shippingRates]
-                              .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
-                              .map((rate) => (
-                                <div key={rate.service_code} className="flex items-center">
-                                  <input
-                                    type="radio"
-                                    id={rate.service_code}
-                                    name="shippingRate"
-                                    value={rate.service_code}
-                                    checked={selectedShippingRate?.service_code === rate.service_code}
-                                    onChange={() => {
-                                      console.log('Selecting shipping rate:', rate);
-                                      setSelectedShippingRate(rate);
-                                    }}
-                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                  />
-                                  <label htmlFor={rate.service_code} className="ml-3 flex justify-between w-full">
-                                    <span className="text-sm text-gray-900">
-                                      Impression et {rate.service_name.toLowerCase()}
-                                    </span>
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {parseFloat(rate.price).toFixed(2)} €
-                                    </span>
-                                  </label>
-                                </div>
-                              ))
-                          ) : (
-                            <div className="text-sm text-gray-500">
-                              <p className="mb-2">
-                                Aucune méthode d'impression et de livraison disponible pour cette destination avec le poids actuel du panier.
-                              </p>
-                              <p>
-                                Poids total : {Object.values(state.items).reduce((total, item) => {
-                                  const weightInKg = item.weight_unit === 'g' ? item.weight / 1000 : item.weight;
-                                  return total + (weightInKg * item.quantity);
-                                }, 0).toFixed(2)} kg
-                              </p>
-                              <p className="mt-1">
-                                Veuillez ajuster la quantité de vos articles ou nous contacter pour une expédition personnalisée.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-900">Résumé</h4>
                       <div className="mt-2 space-y-2">
                         <div className="flex justify-between text-sm text-gray-500">
                           <span>Sous-total</span>
-                          <span>{state.total.toFixed(2)} €</span>
+                          <span>{calculateTotal().toFixed(2)} €</span>
                         </div>
-                        <div className="flex justify-between text-sm text-gray-500">
-                          <span>Poids total</span>
-                          <span>{totalWeight.toFixed(2)} kg</span>
-                        </div>
-                        {selectedShippingRate && (
-                          <div className="flex justify-between text-sm text-gray-500">
-                            <span>Frais d'impression et de port ({selectedShippingRate.service_name})</span>
-                            <span>{parseFloat(selectedShippingRate.price).toFixed(2)} €</span>
-                          </div>
-                        )}
                         <div className="flex justify-between text-sm font-medium text-gray-900">
                           <span>Total</span>
                           <span>{calculateTotal().toFixed(2)} €</span>

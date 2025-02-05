@@ -173,15 +173,12 @@ export default function Cart() {
       </AnimatePresence>
 
       {/* Modal de résumé */}
-      <AnimatePresence>
-        {showSummary && (
-          <CartSummaryModal
-            onClose={() => setShowSummary(false)}
-            state={state}
-            onCreateDraftOrder={handleCreateDraftOrder}
-          />
-        )}
-      </AnimatePresence>
+      <CartSummaryModal
+        isOpen={showSummary}
+        onClose={() => setShowSummary(false)}
+        state={state}
+        onCreateDraftOrder={handleCreateDraftOrder}
+      />
     </>
   );
 }

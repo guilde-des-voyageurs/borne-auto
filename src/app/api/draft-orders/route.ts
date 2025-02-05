@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { createShopifyClient } from '@/utils/shopifyAdmin';
+import { NextResponse, NextRequest } from 'next/server';
 
 interface CustomerInfo {
   firstName: string;
@@ -10,193 +9,78 @@ interface CustomerInfo {
   city: string;
   postalCode: string;
   country: string;
+  acceptsMarketing: boolean;
 }
 
-interface ShippingLine {
-  title: string;
-  price: string;
+interface Item {
+  variant_id: string;
+  quantity: number;
 }
 
-interface DiscountLine {
-  title: string;
-  amount: string;
-}
-
-interface DraftOrderInput {
-  lineItems: Array<{
-    variantId: string;
-    quantity: number;
-  }>;
-  email: string;
-  shippingLine: {
-    title: string;
-    price: string;
-  };
-  billingAddress: {
-    firstName: string;
-    lastName: string;
-    address1: string;
-    city: string;
-    zip: string;
-    country: string;
-    phone: string;
-  };
-  shippingAddress: {
-    firstName: string;
-    lastName: string;
-    address1: string;
-    city: string;
-    zip: string;
-    country: string;
-    phone: string;
-  };
-  appliedDiscount?: {
-    title: string;
-    value: string;
-    valueType: 'FIXED_AMOUNT';
-    description: string;
-  };
-}
-
-interface ShopifyResponse {
-  draftOrderCreate: {
-    draftOrder: {
-      id: string;
-      order?: {
-        id: string;
-      };
-    };
-    userErrors: Array<{
-      field: string[];
-      message: string;
-    }>;
-  };
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { items, shippingLine, discountLine, customer } = await request.json() as {
-      items: Record<string, { quantity: number }>;
-      shippingLine: ShippingLine;
-      discountLine?: DiscountLine;
-      customer: CustomerInfo;
+    const { customer, items } = await request.json();
+
+    if (!customer || !items) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Construire l'adresse de livraison
+    const shipping_address = {
+      first_name: customer.firstName,
+      last_name: customer.lastName,
+      address1: customer.address1,
+      city: customer.city,
+      province: '',
+      country: customer.country,
+      zip: customer.postalCode,
+      phone: customer.phone
     };
-    
-    console.log('Creating draft order with:', { items, shippingLine, discountLine, customer });
 
-    const shopify = createShopifyClient();
-
-    // Convertir les items du panier en ligne de commande Shopify
-    const lineItems = Object.entries(items).map(([variantId, item]) => {
-      const numericId = variantId.split('/').pop()?.replace('ProductVariant/', '') || '';
-      console.log('Converting variant:', { original: variantId, numeric: numericId });
-      
-      return {
-        variantId: `gid://shopify/ProductVariant/${numericId}`,
+    // Préparer les données pour la création de la commande provisoire
+    const draft_order = {
+      line_items: items.map(item => ({
+        variant_id: parseInt(item.variant_id),
         quantity: item.quantity
-      };
-    });
-
-    console.log('Prepared line items:', lineItems);
-
-    // Préparer la mutation GraphQL
-    const mutation = `
-      mutation draftOrderCreate($input: DraftOrderInput!) {
-        draftOrderCreate(input: $input) {
-          draftOrder {
-            id
-            order {
-              id
-            }
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `;
-
-    // Construire les données de la commande
-    const draftOrderInput: DraftOrderInput = {
-      lineItems,
-      email: customer.email,
-      shippingLine: {
-        title: shippingLine.title,
-        price: shippingLine.price
+      })),
+      customer: {
+        first_name: customer.firstName,
+        last_name: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        accepts_marketing: customer.acceptsMarketing
       },
-      billingAddress: {
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        address1: customer.address1,
-        city: customer.city,
-        zip: customer.postalCode,
-        country: customer.country,
-        phone: customer.phone
-      },
-      shippingAddress: {
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        address1: customer.address1,
-        city: customer.city,
-        zip: customer.postalCode,
-        country: customer.country,
-        phone: customer.phone
-      }
+      shipping_address,
+      billing_address: shipping_address,
+      use_customer_default_address: false
     };
 
-    // Ajouter la réduction si elle existe
-    if (discountLine) {
-      draftOrderInput.appliedDiscount = {
-        title: discountLine.title,
-        value: discountLine.amount,
-        valueType: 'FIXED_AMOUNT',
-        description: 'Réduction sur les frais de port'
-      };
+    console.log('Creating draft order with:', JSON.stringify(draft_order, null, 2));
+
+    // Créer la commande provisoire
+    const response = await fetch(
+      `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN || '',
+        },
+        body: JSON.stringify({ draft_order }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Shopify API error:', errorText);
+      return NextResponse.json({ error: 'Failed to create draft order', details: errorText }, { status: response.status });
     }
 
-    console.log('Sending to Shopify:', {
-      mutation,
-      input: JSON.stringify(draftOrderInput, null, 2)
-    });
-
-    // Envoyer la requête à Shopify
-    const response = await shopify.request<ShopifyResponse>(mutation, {
-      input: draftOrderInput
-    });
-
-    console.log('Shopify response:', response);
-
-    if (response.draftOrderCreate?.userErrors?.length > 0) {
-      const errors = response.draftOrderCreate.userErrors;
-      console.error('Shopify draft order errors:', errors);
-      return NextResponse.json({ error: errors[0].message }, { status: 400 });
-    }
-
-    return NextResponse.json({
-      draft_order: response.draftOrderCreate?.draftOrder
-    });
+    const data = await response.json();
+    return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error in draft-orders API:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      details: error instanceof Error ? (error as any).response?.errors : undefined
-    });
-    
-    // Si c'est une erreur GraphQL, on retourne les détails
-    if (error instanceof Error && (error as any).response?.errors) {
-      const graphqlErrors = (error as any).response.errors;
-      return NextResponse.json(
-        { error: graphqlErrors[0].message },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error creating draft order:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
