@@ -23,17 +23,28 @@ interface ProductDetailProps {
 }
 
 export default function ProductDetail({ product, onProductAdded }: ProductDetailProps) {
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  // Extraire les options uniques
+  const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
+  const sizes = Array.from(new Set(product.variants.map(v => v.option2).filter(Boolean)));
+
+  // Initialiser avec la première couleur et la taille M si disponible
+  const [selectedColor, setSelectedColor] = useState<string | null>(() => colors[0] || null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(() => {
+    // Si la taille M est disponible pour la première couleur, la sélectionner
+    const mSizeAvailable = product.variants.some(v => v.option1 === colors[0] && v.option2 === 'M');
+    if (mSizeAvailable) {
+      return 'M';
+    }
+    // Sinon, prendre la première taille disponible pour cette couleur
+    const firstAvailableSize = product.variants.find(v => v.option1 === colors[0])?.option2;
+    return firstAvailableSize || null;
+  });
+
   const [currentImage, setCurrentImage] = useState<string>(
     getDefaultImageByProduct(product.title, product.product_type)
   );
 
   const { dispatch } = useCart();
-
-  // Extraire les options uniques
-  const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
-  const sizes = Array.from(new Set(product.variants.map(v => v.option2).filter(Boolean)));
 
   // Calculer les tailles disponibles pour la couleur sélectionnée
   const availableSizes = useMemo(() => {
@@ -50,7 +61,14 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
   // Réinitialiser la taille si elle n'est plus disponible avec la nouvelle couleur
   useEffect(() => {
     if (selectedSize && !availableSizes.has(selectedSize)) {
-      setSelectedSize(null);
+      // Essayer de sélectionner la taille M si disponible
+      if (availableSizes.has('M')) {
+        setSelectedSize('M');
+      } else {
+        // Sinon prendre la première taille disponible
+        const firstSize = Array.from(availableSizes)[0];
+        setSelectedSize(firstSize || null);
+      }
     }
   }, [selectedColor, availableSizes, selectedSize]);
 
@@ -72,32 +90,29 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
     if (selectedVariant) {
       console.log('Variant sélectionnée:', selectedVariant);
       
-      // Extraire l'ID numérique de la variante
       const variantId = selectedVariant.admin_graphql_api_id || `gid://shopify/ProductVariant/${selectedVariant.id}`;
       const productId = product.admin_graphql_api_id || `gid://shopify/Product/${product.id}`;
       
-      console.log('IDs utilisés:', { variantId, productId });
-
       dispatch({
         type: 'ADD_ITEM',
         payload: {
           variantId,
-          item: {
-            productId,
-            title: product.title,
-            variantTitle: `${selectedColor} - ${selectedSize}`,
-            price: selectedVariant.price,
-            quantity: 1,
-            image: selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type),
-            weight: selectedVariant.weight || 0,
-            weight_unit: selectedVariant.weight_unit || 'kg'
-          }
+          title: product.title,
+          variantTitle: `${selectedColor} - ${selectedSize}`,
+          price: selectedVariant.price,
+          image: currentImage,
+          quantity: 1,
+          weight: selectedVariant.weight || 0,
+          weight_unit: selectedVariant.weight_unit || 'kg'
         }
       });
 
+      // Log pour déboguer
+      console.log('Image envoyée à SuccessSlide:', currentImage);
+
       onProductAdded({
         productTitle: product.title,
-        productImage: selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type),
+        productImage: currentImage,
         variant: `${selectedColor} - ${selectedSize}`
       });
     }

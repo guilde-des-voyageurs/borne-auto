@@ -3,12 +3,12 @@
 import { motion } from 'framer-motion';
 
 interface SuccessSlideProps {
-  productTitle: string;
-  productImage: string;
+  title: string;
+  image: string;
   variant: string;
 }
 
-export default function SuccessSlide({ productTitle, productImage, variant }: SuccessSlideProps) {
+export default function SuccessSlide({ title, image, variant }: SuccessSlideProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -37,12 +37,12 @@ export default function SuccessSlide({ productTitle, productImage, variant }: Su
 
       <div className="flex items-center gap-6 bg-[#666] p-6 rounded-lg mb-8">
         <img
-          src={productImage}
-          alt={productTitle}
-          className="w-32 h-32 object-contain rounded-lg"
+          src={image}
+          alt={title}
+          className="w-32 h-32 object-contain rounded-lg bg-white"
         />
         <div>
-          <h3 className="text-xl font-semibold">{productTitle}</h3>
+          <h3 className="text-xl font-semibold">{title}</h3>
           <p className="text-gray-300">{variant}</p>
         </div>
       </div>

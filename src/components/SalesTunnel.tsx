@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProductDetail from './ProductDetail';
 import SuccessSlide from './SuccessSlide';
 import { getDefaultImageByType } from '../constants/images';
+import { useCart } from '../context/CartContext';
+import { usePathname } from 'next/navigation';
 
 type Slide = 'types' | 'products' | 'variants' | 'success';
 
@@ -24,6 +26,11 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
+  const { state } = useCart();
+  const pathname = usePathname();
+
+  // Vérifier si le panier doit être affiché (page d'accueil et non vide)
+  const isCartVisible = pathname === '/' && Object.keys(state.items).length > 0;
 
   useEffect(() => {
     setMounted(true);
@@ -90,7 +97,7 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     : [];
 
   return (
-    <div className="container mx-auto p-8">
+    <div className={`mx-auto p-8 transition-all duration-300 ${isCartVisible ? 'pr-96' : ''}`}>
       {currentSlide !== 'types' && currentSlide !== 'success' && (
         <button
           onClick={handleBack}

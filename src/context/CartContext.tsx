@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 interface CartItem {
-  productId: string;
   title: string;
   variantTitle: string;
   price: string;
@@ -19,7 +18,7 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: { variantId: string; item: CartItem } }
+  | { type: 'ADD_ITEM'; payload: { variantId: string } & CartItem }
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { variantId: string; quantity: number } }
   | { type: 'CLEAR_CART' };
@@ -32,7 +31,7 @@ const initialState: CartState = {
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { variantId, item } = action.payload;
+      const { variantId, ...item } = action.payload;
       const existingItem = state.items[variantId];
 
       const updatedItems = {
@@ -55,32 +54,34 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     }
 
     case 'REMOVE_ITEM': {
-      const { [action.payload]: removedItem, ...remainingItems } = state.items;
-      
-      const total = Object.entries(remainingItems).reduce(
+      const variantId = action.payload;
+      const { [variantId]: removed, ...updatedItems } = state.items;
+
+      const total = Object.entries(updatedItems).reduce(
         (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
         0
       );
 
       return {
         ...state,
-        items: remainingItems,
+        items: updatedItems,
         total,
       };
     }
 
     case 'UPDATE_QUANTITY': {
       const { variantId, quantity } = action.payload;
-      
       if (quantity <= 0) {
-        const { [variantId]: removedItem, ...remainingItems } = state.items;
-        const total = Object.entries(remainingItems).reduce(
+        const { [variantId]: removed, ...updatedItems } = state.items;
+        
+        const total = Object.entries(updatedItems).reduce(
           (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
           0
         );
+
         return {
           ...state,
-          items: remainingItems,
+          items: updatedItems,
           total,
         };
       }
@@ -121,19 +122,20 @@ const CartContext = createContext<{
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
-  // Persistance du panier dans le localStorage
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      const parsedCart = JSON.parse(savedCart);
-      if (parsedCart.items && Object.keys(parsedCart.items).length > 0) {
-        Object.entries(parsedCart.items).forEach(([variantId, item]) => {
-          dispatch({
-            type: 'ADD_ITEM',
-            payload: { variantId, item: item as CartItem },
-          });
+      const { items, total } = JSON.parse(savedCart);
+      dispatch({ type: 'CLEAR_CART' });
+      Object.entries(items).forEach(([variantId, item]) => {
+        dispatch({
+          type: 'ADD_ITEM',
+          payload: {
+            variantId,
+            ...item as CartItem
+          }
         });
-      }
+      });
     }
   }, []);
 

@@ -155,9 +155,10 @@ export default function Cart() {
           initial={{ width: 0, opacity: 0 }}
           animate={{ width: "24rem", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
-          className="bg-white border-l shadow-lg overflow-hidden flex flex-col"
+          className="fixed top-0 right-0 h-screen bg-white border-l shadow-lg overflow-hidden flex flex-col"
         >
-          <div className="flex justify-between items-center p-4 border-b">
+          {/* En-tête fixe */}
+          <div className="flex justify-between items-center p-4 border-b bg-white">
             <h2 className="text-xl font-bold">Panier</h2>
             <button
               onClick={clearCart}
@@ -167,6 +168,7 @@ export default function Cart() {
             </button>
           </div>
 
+          {/* Zone de défilement pour les articles */}
           <div className="flex-1 overflow-auto p-4">
             <div className="space-y-4">
               {Object.entries(state.items).map(([variantId, item]) => (
@@ -217,7 +219,8 @@ export default function Cart() {
             </div>
           </div>
 
-          <div className="p-4 border-t space-y-4">
+          {/* Pied de page fixe */}
+          <div className="p-4 border-t bg-white space-y-4">
             {/* Informations sur les promotions */}
             <div className="bg-blue-50 p-3 rounded-lg">
               <h3 className="font-medium text-blue-800 mb-2">Promotions en cours :</h3>
@@ -246,12 +249,14 @@ export default function Cart() {
                 <span className="text-gray-600">Sous-total :</span>
                 <span>{calculateSubtotal().toFixed(2)} €</span>
               </div>
+
               {calculateDiscount() > 0 && (
                 <div className="flex justify-between items-center text-green-600">
                   <span>Remise ({getDiscountPercentage(calculateTotalItems())}%) :</span>
                   <span>-{calculateDiscount().toFixed(2)} €</span>
                 </div>
               )}
+
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total :</span>
                 <span>{calculateTotal().toFixed(2)} €</span>
@@ -262,7 +267,7 @@ export default function Cart() {
               <span className="font-medium">Poids total :</span>
               <span>{formatWeight(calculateTotalWeight())} kg</span>
             </div>
-            
+
             <button
               onClick={() => setShowSummary(true)}
               className="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition-colors"
