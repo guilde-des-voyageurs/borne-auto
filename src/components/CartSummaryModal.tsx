@@ -59,6 +59,35 @@ const playNotificationSound = async () => {
   }
 };
 
+const calculateTotalItems = (state: CartSummaryModalProps['state']) => {
+  return Object.values(state.items).reduce((total, item) => total + item.quantity, 0);
+};
+
+const getDiscountPercentage = (totalItems: number) => {
+  if (totalItems >= 4) return 15;
+  if (totalItems >= 3) return 10;
+  if (totalItems >= 2) return 5;
+  return 0;
+};
+
+const calculateSubtotal = (state: CartSummaryModalProps['state']) => {
+  return Object.values(state.items).reduce((total, item) => {
+    return total + (parseFloat(item.price) * item.quantity);
+  }, 0);
+};
+
+const calculateDiscount = (state: CartSummaryModalProps['state']) => {
+  const subtotal = calculateSubtotal(state);
+  const discountPercentage = getDiscountPercentage(calculateTotalItems(state));
+  return (subtotal * discountPercentage) / 100;
+};
+
+const calculateTotal = (state: CartSummaryModalProps['state']) => {
+  const subtotal = calculateSubtotal(state);
+  const discount = calculateDiscount(state);
+  return subtotal - discount;
+};
+
 export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,12 +146,6 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
     } finally {
       setIsCreatingOrder(false);
     }
-  };
-
-  const calculateTotal = () => {
-    return Object.values(state.items).reduce((total, item) => {
-      return total + (parseFloat(item.price) * item.quantity);
-    }, 0);
   };
 
   return (
@@ -332,14 +355,45 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
 
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-900">Résumé</h4>
-                      <div className="mt-2 space-y-2">
-                        <div className="flex justify-between text-sm text-gray-500">
-                          <span>Sous-total</span>
-                          <span>{calculateTotal().toFixed(2)} €</span>
+                      <div className="mt-2 space-y-4">
+                        {/* Promotions */}
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <h4 className="font-medium text-blue-800 mb-2">Promotions disponibles</h4>
+                          <ul className="text-sm space-y-1 text-blue-700">
+                            <li className="flex items-center">
+                              <span className={calculateTotalItems(state) >= 2 ? "text-green-600 font-medium" : ""}>
+                                2 articles : -5% sur le panier
+                              </span>
+                            </li>
+                            <li className="flex items-center">
+                              <span className={calculateTotalItems(state) >= 3 ? "text-green-600 font-medium" : ""}>
+                                3 articles : -10% sur le panier
+                              </span>
+                            </li>
+                            <li className="flex items-center">
+                              <span className={calculateTotalItems(state) >= 4 ? "text-green-600 font-medium" : ""}>
+                                4 articles : -15% sur le panier
+                              </span>
+                            </li>
+                          </ul>
                         </div>
-                        <div className="flex justify-between text-sm font-medium text-gray-900">
-                          <span>Total</span>
-                          <span>{calculateTotal().toFixed(2)} €</span>
+
+                        {/* Totaux */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>Sous-total</span>
+                            <span>{calculateSubtotal(state).toFixed(2)} €</span>
+                          </div>
+                          {calculateDiscount(state) > 0 && (
+                            <div className="flex justify-between text-green-600">
+                              <span>Remise ({getDiscountPercentage(calculateTotalItems(state))}%)</span>
+                              <span>-{calculateDiscount(state).toFixed(2)} €</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-bold text-lg border-t pt-2">
+                            <span>Total</span>
+                            <span>{calculateTotal(state).toFixed(2)} €</span>
+                          </div>
                         </div>
                       </div>
                     </div>

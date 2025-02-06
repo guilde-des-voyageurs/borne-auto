@@ -79,7 +79,8 @@ export async function POST(request: Request) {
         customer,
         email: body.customer.email, // Ajouter l'email au niveau de la commande aussi
         shipping_address,
-        use_customer_default_address: false
+        use_customer_default_address: false,
+        applied_discount: body.applied_discount // Ajouter la remise si elle existe
       }
     };
 
