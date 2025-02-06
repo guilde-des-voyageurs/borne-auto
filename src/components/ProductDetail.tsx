@@ -14,6 +14,7 @@ interface Variant {
   weight: number | null;
   weight_unit: string | null;
   admin_graphql_api_id: string | null;
+  image: string | null;
 }
 
 interface ProductDetailProps {
@@ -60,18 +61,12 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
 
   // Mettre à jour l'image en fonction de la sélection
   useEffect(() => {
-    if (selectedColor) {
-      const variantWithColor = product.variants.find(v => v.option1 === selectedColor);
-      if (variantWithColor?.image_id) {
-        const image = product.images.find(img => img.id === variantWithColor.image_id);
-        if (image) {
-          setCurrentImage(image.src);
-        }
-      }
+    if (selectedVariant) {
+      setCurrentImage(selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type));
     } else {
       setCurrentImage(getDefaultImageByProduct(product.title, product.product_type));
     }
-  }, [selectedColor, product.variants, product.images, product.title, product.product_type]);
+  }, [selectedVariant, product.title, product.product_type]);
 
   const handleAddToCart = () => {
     if (selectedVariant) {
@@ -93,7 +88,7 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
             variantTitle: `${selectedColor} - ${selectedSize}`,
             price: selectedVariant.price,
             quantity: 1,
-            image: currentImage,
+            image: selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type),
             weight: selectedVariant.weight || 0,
             weight_unit: selectedVariant.weight_unit || 'kg'
           }
@@ -102,7 +97,7 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
 
       onProductAdded({
         productTitle: product.title,
-        productImage: currentImage,
+        productImage: selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type),
         variant: `${selectedColor} - ${selectedSize}`
       });
     }

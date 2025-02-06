@@ -1,6 +1,7 @@
 // Images par défaut générales
 export const DEFAULT_PRODUCT_IMAGE = '/images/default-product.webp';
 export const TSHIRT_DEFAULT_IMAGE = '/images/default-tshirt.webp';
+export const TSHIRT_FEMME_DEFAULT_IMAGE = '/images/default-tshit-femme.png';
 export const SWEATSHIRT_DEFAULT_IMAGE = '/images/default-sweatshirt.webp';
 
 // Images par défaut spécifiques aux produits
@@ -14,6 +15,8 @@ export const getDefaultImageByType = (type: string): string => {
   switch (type) {
     case 'T-shirt unisexe':
       return TSHIRT_DEFAULT_IMAGE;
+    case 'T-shirt coupe femme':
+      return TSHIRT_FEMME_DEFAULT_IMAGE;
     case 'Sweatshirt':
       return SWEATSHIRT_DEFAULT_IMAGE;
     default:

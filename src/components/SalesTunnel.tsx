@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductDetail from './ProductDetail';
 import SuccessSlide from './SuccessSlide';
-import { getDefaultImageByType, getDefaultImageByProduct } from '../constants/images';
+import { getDefaultImageByType } from '../constants/images';
 
 type Slide = 'types' | 'products' | 'variants' | 'success';
 
@@ -29,8 +29,15 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     setMounted(true);
   }, []);
 
-  // Extraire les types uniques des produits
-  const productTypes = Array.from(new Set(products.map(product => product.product_type)));
+  // Liste des catégories à exclure
+  const excludedTypes = ['Sweatshirt Drummer'];
+
+  // Extraire les types uniques des produits en excluant les types non désirés
+  const productTypes = Array.from(new Set(
+    products
+      .map(product => product.product_type)
+      .filter(type => !excludedTypes.includes(type))
+  ));
 
   const handleTypeSelect = (type: string) => {
     setSelectedType(type);
@@ -78,6 +85,10 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     return null;
   }
 
+  const filteredProducts = selectedType
+    ? products.filter(product => product.product_type === selectedType)
+    : [];
+
   return (
     <div className="container mx-auto p-8">
       {currentSlide !== 'types' && currentSlide !== 'success' && (
@@ -101,25 +112,29 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {productTypes.map((type) => (
-              <button
+              <motion.div
                 key={type}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => handleTypeSelect(type)}
-                className="p-6 bg-[#555] border border-gray-600 rounded-lg shadow-lg hover:shadow-xl transition-shadow text-white"
+                className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
               >
-                <div className="flex flex-col items-center">
+                <div className="aspect-w-16 aspect-h-9">
                   <img
                     src={getDefaultImageByType(type)}
                     alt={type}
-                    className="w-48 h-48 object-contain mb-4"
+                    className="w-full h-full object-cover"
                   />
-                  <h2 className="text-xl font-semibold">{type || 'Sans catégorie'}</h2>
                 </div>
-              </button>
+                <div className="p-4">
+                  <h3 className="text-xl font-semibold text-center">{type}</h3>
+                </div>
+              </motion.div>
             ))}
           </motion.div>
         )}
 
-        {currentSlide === 'products' && selectedType && (
+        {currentSlide === 'products' && (
           <motion.div
             key="products"
             variants={fadeVariants}
@@ -129,23 +144,26 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             transition={{ duration: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {products
-              .filter(product => product.product_type === selectedType)
-              .map(product => (
-                <button
-                  key={product.id}
-                  onClick={() => handleProductSelect(product)}
-                  className="bg-[#555] border border-gray-600 rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow text-left text-white"
-                >
+            {filteredProducts.map((product) => (
+              <motion.div
+                key={product.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleProductSelect(product)}
+                className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
+              >
+                <div className="aspect-w-16 aspect-h-9">
                   <img
-                    src={getDefaultImageByProduct(product.title, product.product_type)}
+                    src={product.image || getDefaultImageByType(product.product_type)}
                     alt={product.title}
-                    className="w-full h-48 object-contain rounded-md mb-4"
+                    className="w-full h-full object-cover"
                   />
-                  <h2 className="text-xl font-semibold">{product.title}</h2>
-                  <p className="text-gray-300 mt-2">{product.variants[0].price} €</p>
-                </button>
-              ))}
+                </div>
+                <div className="p-4">
+                  <h3 className="text-xl font-semibold text-center">{product.title}</h3>
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
         )}
 
@@ -158,8 +176,8 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <ProductDetail 
-              product={selectedProduct} 
+            <ProductDetail
+              product={selectedProduct}
               onProductAdded={handleProductAdded}
             />
           </motion.div>
@@ -174,7 +192,11 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <SuccessSlide {...successInfo} />
+            <SuccessSlide
+              title={successInfo.productTitle}
+              image={successInfo.productImage}
+              variant={successInfo.variant}
+            />
           </motion.div>
         )}
       </AnimatePresence>
