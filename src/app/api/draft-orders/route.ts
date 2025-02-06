@@ -49,14 +49,50 @@ export async function POST(request: Request) {
       last_name: body.customer.lastName,
       address1: body.customer.address1,
       city: body.customer.city,
-      province: '',
-      country: body.customer.country,
+      phone: body.customer.phone,
       zip: body.customer.postalCode,
-      phone: body.customer.phone
+      country_code: body.customer.country
     };
 
-    console.log('Formatted line items:', formattedLineItems);
-    console.log('Customer info:', body.customer);
+    // Préparer les données du client
+    const customer = {
+      first_name: body.customer.firstName,
+      last_name: body.customer.lastName,
+      email: body.customer.email,
+      phone: body.customer.phone,
+      accepts_marketing: body.customer.acceptsMarketing
+    };
+
+    // Logs détaillés du client
+    console.log('=== INFORMATIONS CLIENT ===');
+    console.log(`Nom: ${customer.first_name} ${customer.last_name}`);
+    console.log(`Email: ${customer.email}`);
+    console.log(`Téléphone: ${customer.phone}`);
+    console.log('========================');
+
+    // Debug: voir les données envoyées
+    console.log('Customer data being sent:', customer);
+
+    const draftOrderData = {
+      draft_order: {
+        line_items: formattedLineItems,
+        customer,
+        email: body.customer.email, // Ajouter l'email au niveau de la commande aussi
+        shipping_address,
+        use_customer_default_address: false
+      }
+    };
+
+    if (body.shippingLine) {
+      draftOrderData.draft_order.shipping_line = {
+        title: body.shippingLine.title,
+        price: body.shippingLine.price,
+        custom: true
+      };
+    }
+
+    // Debug: voir les données complètes envoyées à Shopify
+    console.log('Data being sent to Shopify:', JSON.stringify(draftOrderData, null, 2));
 
     const response = await fetch(
       `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders.json`,
@@ -66,37 +102,25 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN
         },
-        body: JSON.stringify({
-          draft_order: {
-            line_items: formattedLineItems,
-            customer: {
-              first_name: body.customer.firstName,
-              last_name: body.customer.lastName,
-              email: body.customer.email,
-              phone: body.customer.phone,
-              accepts_marketing: body.customer.acceptsMarketing
-            },
-            shipping_address,
-            billing_address: shipping_address,
-            use_customer_default_address: false
-          }
-        })
+        body: JSON.stringify(draftOrderData)
       }
     );
 
     if (!response.ok) {
-      const errorData = await response.text();
+      const errorData = await response.json();
       console.error('Shopify API error:', errorData);
-      throw new Error('Failed to create draft order');
+      return NextResponse.json(
+        { error: 'Failed to create draft order' },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return NextResponse.json(data);
-
   } catch (error) {
-    console.error('Error creating draft order:', error);
+    console.error('Error in draft order creation:', error);
     return NextResponse.json(
-      { error: 'Failed to create draft order' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

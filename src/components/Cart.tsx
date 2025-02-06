@@ -93,8 +93,9 @@ export default function Cart() {
       // Vider le panier avant la redirection
       dispatch({ type: 'CLEAR_CART' });
       
-      // Rediriger vers la nouvelle page au lieu d'ouvrir la modal
-      window.location.href = `/draft-order-created/${data.draft_order.id}`;
+      // Rediriger vers la nouvelle page avec le prénom du client
+      const firstName = encodeURIComponent(options.customer.firstName);
+      window.location.href = `/draft-order-created/${data.draft_order.id}?name=${firstName}`;
       
     } catch (error) {
       console.error('Error creating draft order:', error);
