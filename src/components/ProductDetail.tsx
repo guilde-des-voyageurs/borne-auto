@@ -22,6 +22,16 @@ interface ProductDetailProps {
   onProductAdded: (info: { productTitle: string; productImage: string; variant: string }) => void;
 }
 
+// Fonction utilitaire pour précharger une image
+const preloadImage = (src: string) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(src);
+    img.onerror = reject;
+    img.src = src;
+  });
+};
+
 export default function ProductDetail({ product, onProductAdded }: ProductDetailProps) {
   // Extraire les options uniques
   const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
@@ -43,8 +53,36 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
   const [currentImage, setCurrentImage] = useState<string>(
     getDefaultImageByProduct(product.title, product.product_type)
   );
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
 
   const { dispatch } = useCart();
+
+  // Précharger toutes les images des variantes au montage du composant
+  useEffect(() => {
+    const loadAllImages = async () => {
+      const imagesToLoad = product.variants
+        .map((v: Variant) => v.image)
+        .filter((img: string | null): img is string => Boolean(img));
+
+      // Ajouter l'image par défaut
+      const defaultImage = getDefaultImageByProduct(product.title, product.product_type);
+      if (defaultImage) {
+        imagesToLoad.push(defaultImage);
+      }
+
+      // Précharger toutes les images uniques
+      const uniqueImages = Array.from(new Set(imagesToLoad));
+      try {
+        await Promise.all(uniqueImages.map(preloadImage));
+        setPreloadedImages(new Set(uniqueImages));
+      } catch (error) {
+        console.error('Erreur lors du préchargement des images:', error);
+      }
+    };
+
+    loadAllImages();
+  }, [product]);
 
   // Calculer les tailles disponibles pour la couleur sélectionnée
   const availableSizes = useMemo(() => {
@@ -80,11 +118,24 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
   // Mettre à jour l'image en fonction de la sélection
   useEffect(() => {
     if (selectedVariant) {
-      setCurrentImage(selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type));
-    } else {
-      setCurrentImage(getDefaultImageByProduct(product.title, product.product_type));
+      setIsImageLoading(true);
+      const newImage = selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type);
+      
+      if (preloadedImages.has(newImage)) {
+        setCurrentImage(newImage);
+        setIsImageLoading(false);
+      } else {
+        preloadImage(newImage)
+          .then(() => {
+            setCurrentImage(newImage);
+            setPreloadedImages(prev => new Set([...prev, newImage]));
+          })
+          .finally(() => {
+            setIsImageLoading(false);
+          });
+      }
     }
-  }, [selectedVariant, product.title, product.product_type]);
+  }, [selectedVariant, product.title, product.product_type, preloadedImages]);
 
   const handleAddToCart = () => {
     if (selectedVariant) {
@@ -121,11 +172,18 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
   return (
     <div className="max-w-4xl mx-auto bg-[#555] rounded-lg shadow-lg p-8 text-white">
       {/* Image du produit */}
-      <div className="mb-8 flex justify-center items-center h-96">
+      <div className="relative mb-8 flex justify-center items-center h-96">
+        {isImageLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
         <img
           src={currentImage}
           alt={product.title}
-          className="max-h-full w-auto object-contain rounded-lg"
+          className={`max-h-full w-auto object-contain rounded-lg transition-opacity duration-300 ${
+            isImageLoading ? 'opacity-0' : 'opacity-100'
+          }`}
         />
       </div>
 
