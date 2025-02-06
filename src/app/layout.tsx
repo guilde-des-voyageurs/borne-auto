@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from '../context/CartContext';
+import { CartUIProvider } from '../context/CartUIContext';
 import Cart from '../components/Cart';
 import MainContainer from '../components/MainContainer';
 
@@ -31,14 +32,16 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <CartProvider>
-          <MainContainer>
-            <div className="flex">
-              <main className="flex-1 min-h-screen">
-                {children}
-              </main>
-            </div>
-          </MainContainer>
-          <Cart />
+          <CartUIProvider>
+            <MainContainer>
+              <div className="flex">
+                <main className="flex-1 min-h-screen">
+                  {children}
+                </main>
+              </div>
+            </MainContainer>
+            <Cart />
+          </CartUIProvider>
         </CartProvider>
       </body>
     </html>

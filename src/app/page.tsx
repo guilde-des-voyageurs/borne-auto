@@ -1,16 +1,21 @@
-import { getProducts } from '@/utils/shopify';
-import SalesTunnel from '@/components/SalesTunnel';
+'use client';
 
-export default async function Home() {
-  const { products } = await getProducts();
+import { useRouter } from 'next/navigation';
+
+export default function Home() {
+  const router = useRouter();
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#999' }}>
-      <div className="py-8">
-        <div className="max-w-[1920px] mx-auto px-4">
-          <SalesTunnel products={products} />
-        </div>
-      </div>
+    <main 
+      className="min-h-screen bg-gray-900 flex flex-col items-center justify-center cursor-pointer"
+      onClick={() => router.push('/selection')}
+    >
+      <h1 className="text-6xl font-bold text-white mb-6">
+        Impression à la demande
+      </h1>
+      <p className="text-2xl text-gray-300">
+        Toucher l&apos;écran pour commencer
+      </p>
     </main>
   );
 }

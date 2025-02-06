@@ -1,8 +1,9 @@
 'use client';
 
 import { useCart } from '../context/CartContext';
+import { useCartUI } from '../context/CartUIContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CartSummaryModal from './CartSummaryModal';
 import ShippingRatesModal from './ShippingRatesModal';
 import { usePathname } from 'next/navigation';
@@ -21,13 +22,22 @@ interface Customer {
 
 export default function Cart() {
   const { state, dispatch } = useCart();
+  const { isCartOpen, setIsCartOpen } = useCartUI();
   const [showSummary, setShowSummary] = useState(false);
   const [showShippingRates, setShowShippingRates] = useState(false);
   const [currentDraftOrderId, setCurrentDraftOrderId] = useState<string | null>(null);
   const pathname = usePathname();
 
-  // Ne montrer le panier que sur la page d'accueil et s'il n'est pas vide
-  if (pathname !== '/' || Object.keys(state.items).length === 0) {
+  useEffect(() => {
+    if (Object.keys(state.items).length > 0) {
+      setIsCartOpen(true);
+    } else {
+      setIsCartOpen(false);
+    }
+  }, [state.items, setIsCartOpen]);
+
+  // Si le panier est vide ou si nous ne sommes pas sur la bonne page, ne rien afficher
+  if ((pathname !== '/' && pathname !== '/selection') || Object.keys(state.items).length === 0) {
     return null;
   }
 
