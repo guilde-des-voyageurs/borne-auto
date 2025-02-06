@@ -1,147 +1,101 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer } from 'react';
 
-interface CartItem {
+export interface CartItem {
+  variantId: string;
   title: string;
-  variantTitle: string;
+  variant: string;
   price: string;
   quantity: number;
-  image: string;
   weight: number;
   weight_unit: string;
 }
 
 interface CartState {
-  items: { [variantId: string]: CartItem };
-  total: number;
+  items: {
+    [variantId: string]: CartItem;
+  };
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: { variantId: string } & CartItem }
+  | { type: 'ADD_ITEM'; payload: CartItem }
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { variantId: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
-const initialState: CartState = {
-  items: {},
-  total: 0,
-};
+const CartContext = createContext<{
+  state: CartState;
+  dispatch: React.Dispatch<CartAction>;
+}>({
+  state: { items: {} },
+  dispatch: () => null,
+});
 
-function cartReducer(state: CartState, action: CartAction): CartState {
+const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { variantId, ...item } = action.payload;
-      const existingItem = state.items[variantId];
-
-      const updatedItems = {
-        ...state.items,
-        [variantId]: existingItem
-          ? { ...existingItem, quantity: existingItem.quantity + item.quantity }
-          : item,
-      };
-
-      const total = Object.entries(updatedItems).reduce(
-        (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
-        0
-      );
-
+      const existingItem = state.items[action.payload.variantId];
+      if (existingItem) {
+        return {
+          ...state,
+          items: {
+            ...state.items,
+            [action.payload.variantId]: {
+              ...existingItem,
+              quantity: existingItem.quantity + action.payload.quantity,
+            },
+          },
+        };
+      }
       return {
         ...state,
-        items: updatedItems,
-        total,
+        items: {
+          ...state.items,
+          [action.payload.variantId]: action.payload,
+        },
       };
     }
 
     case 'REMOVE_ITEM': {
-      const variantId = action.payload;
-      const { [variantId]: removed, ...updatedItems } = state.items;
-
-      const total = Object.entries(updatedItems).reduce(
-        (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
-        0
-      );
-
+      const newItems = { ...state.items };
+      delete newItems[action.payload];
       return {
         ...state,
-        items: updatedItems,
-        total,
+        items: newItems,
       };
     }
 
     case 'UPDATE_QUANTITY': {
       const { variantId, quantity } = action.payload;
-      if (quantity <= 0) {
-        const { [variantId]: removed, ...updatedItems } = state.items;
-        
-        const total = Object.entries(updatedItems).reduce(
-          (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
-          0
-        );
-
-        return {
-          ...state,
-          items: updatedItems,
-          total,
-        };
-      }
-
-      const updatedItems = {
-        ...state.items,
-        [variantId]: {
-          ...state.items[variantId],
-          quantity,
-        },
-      };
-
-      const total = Object.entries(updatedItems).reduce(
-        (sum, [_, item]) => sum + parseFloat(item.price) * item.quantity,
-        0
-      );
+      const item = state.items[variantId];
+      if (!item) return state;
 
       return {
         ...state,
-        items: updatedItems,
-        total,
+        items: {
+          ...state.items,
+          [variantId]: {
+            ...item,
+            quantity,
+          },
+        },
       };
     }
 
     case 'CLEAR_CART':
-      return initialState;
+      return {
+        ...state,
+        items: {},
+      };
 
     default:
       return state;
   }
-}
-
-const CartContext = createContext<{
-  state: CartState;
-  dispatch: React.Dispatch<CartAction>;
-} | null>(null);
+};
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState);
-
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      const { items, total } = JSON.parse(savedCart);
-      dispatch({ type: 'CLEAR_CART' });
-      Object.entries(items).forEach(([variantId, item]) => {
-        dispatch({
-          type: 'ADD_ITEM',
-          payload: {
-            variantId,
-            ...item as CartItem
-          }
-        });
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(state));
-  }, [state]);
+  const [state, dispatch] = useReducer(cartReducer, { items: {} });
 
   return (
     <CartContext.Provider value={{ state, dispatch }}>

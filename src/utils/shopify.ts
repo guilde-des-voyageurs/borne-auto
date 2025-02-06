@@ -1,4 +1,29 @@
-export async function getProducts() {
+interface ShopifyProduct {
+  id: string;
+  title: string;
+  product_type: string;
+  variants: Array<{
+    id: string;
+    title: string;
+    price: string;
+    weight: number;
+    weight_unit: string;
+    available: boolean;
+    grams: number;
+    image_id: number;
+  }>;
+  images: Array<{
+    src: string;
+    alt?: string;
+    id: number;
+  }>;
+}
+
+interface ShopifyResponse {
+  products: ShopifyProduct[];
+}
+
+export async function getProducts(): Promise<{ products: ShopifyProduct[] }> {
   try {
     const response = await fetch(
       `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/products.json?status=active&fields=id,title,product_type,variants,images`,
@@ -14,10 +39,10 @@ export async function getProducts() {
       throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`);
     }
 
-    const data = await response.json();
+    const data: ShopifyResponse = await response.json();
     
     // Fonction pour trouver l'image "black/noir" ou la première image disponible
-    const findPreferredImage = (images: any[]) => {
+    const findPreferredImage = (images: ShopifyProduct['images']) => {
       // Chercher d'abord une image avec "black" ou "noir" dans l'URL
       const blackImage = images.find(img => {
         const url = img.src.toLowerCase();

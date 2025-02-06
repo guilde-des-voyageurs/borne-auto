@@ -1,183 +1,164 @@
 'use client';
 
-import React, { Fragment, useEffect, useState } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 interface ShippingRate {
   id: string;
   name: string;
   price: string;
-  delivery_time: string;
-  carrier_identifier: string;
+  service_code: string;
+  selected?: boolean;
 }
 
 interface ShippingRatesModalProps {
-  isOpen: boolean;
   onClose: () => void;
-  draftOrderId: string;
 }
 
-export default function ShippingRatesModal({ isOpen, onClose, draftOrderId }: ShippingRatesModalProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function ShippingRatesModal({ onClose }: ShippingRatesModalProps) {
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRate, setSelectedRate] = useState<ShippingRate | null>(null);
-
-  useEffect(() => {
-    if (isOpen && draftOrderId) {
-      fetchShippingRates();
-    }
-  }, [isOpen, draftOrderId]);
 
   const fetchShippingRates = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/draft-orders/${draftOrderId}/shipping-rates`);
+      setLoading(true);
+      const response = await fetch('/api/shipping-rates');
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch shipping rates');
+        throw new Error('Erreur lors de la récupération des frais de port');
       }
-
       const data = await response.json();
       setShippingRates(data.shipping_rates || []);
+      
+      // Sélectionner automatiquement le premier tarif
+      if (data.shipping_rates && data.shipping_rates.length > 0) {
+        setSelectedRate(data.shipping_rates[0]);
+      }
     } catch (error) {
-      console.error('Error fetching shipping rates:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch shipping rates');
+      console.error('Erreur:', error);
+      setError("Impossible de récupérer les frais d'expédition");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSelectRate = (rate: ShippingRate) => {
-    setSelectedRate(rate);
-  };
+  useEffect(() => {
+    fetchShippingRates();
+  }, []); // Ajouter la dépendance manquante dans useEffect
 
-  const handleValidate = async () => {
-    if (!selectedRate) return;
-
+  const handleRateSelect = async (rate: ShippingRate) => {
     try {
-      const response = await fetch(`/api/draft-orders/${draftOrderId}/shipping-method`, {
-        method: 'PUT',
+      setSelectedRate(rate);
+      
+      // Mettre à jour la commande avec le tarif sélectionné
+      const response = await fetch('/api/draft-orders/update-shipping', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          shipping_line: selectedRate
-        })
+          shipping_line: {
+            title: rate.name,
+            price: rate.price,
+            code: rate.service_code
+          }
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update shipping method');
+        throw new Error("Erreur lors de la mise à jour des frais d'expédition");
       }
 
+      // Fermer la modale après la sélection
       onClose();
-      window.location.reload();
     } catch (error) {
-      console.error('Error updating shipping rate:', error);
-      setError(error instanceof Error ? error.message : 'Failed to update shipping rate');
+      console.error('Erreur:', error);
+      setError("Impossible de mettre à jour les frais d'expédition");
     }
   };
 
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      >
+        <div className="bg-white p-8 rounded-lg shadow-xl text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement des options d&apos;expédition...</p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      >
+        <div className="bg-white p-8 rounded-lg shadow-xl text-center">
+          <div className="text-red-600 mb-4">⚠️</div>
+          <p className="text-gray-600">Impossible de récupérer les frais d&apos;expédition</p>
+          <button
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          >
+            Fermer
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={() => {}}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+    >
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Options d&apos;expédition</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div>
-                  <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
-                    Méthodes d'expédition disponibles
-                  </Dialog.Title>
+              ✕
+            </button>
+          </div>
 
-                  <div className="mt-4">
-                    {isLoading ? (
-                      <div className="text-center">
-                        <p className="text-sm text-gray-500">Chargement des méthodes d'expédition...</p>
-                      </div>
-                    ) : error ? (
-                      <div className="text-center">
-                        <p className="text-sm text-red-500">{error}</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {shippingRates.map((rate) => (
-                          <button
-                            key={rate.id}
-                            onClick={() => handleSelectRate(rate)}
-                            className={`w-full p-4 text-left border rounded-lg transition-colors ${
-                              selectedRate?.id === rate.id
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-blue-500'
-                            }`}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <h4 className="font-medium">{rate.name}</h4>
-                                <p className="text-sm text-gray-500">{rate.delivery_time}</p>
-                              </div>
-                              <div className="text-lg font-semibold">
-                                {parseFloat(rate.price).toLocaleString('fr-FR', {
-                                  style: 'currency',
-                                  currency: 'EUR'
-                                })}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+          <div className="space-y-4">
+            {shippingRates.map((rate) => (
+              <button
+                key={rate.id}
+                onClick={() => handleRateSelect(rate)}
+                className={`w-full p-4 rounded-lg border-2 transition-colors ${
+                  selectedRate?.id === rate.id
+                    ? 'border-indigo-600 bg-indigo-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="text-left">
+                    <h3 className="font-medium">{rate.name}</h3>
+                  </div>
+                  <div className="text-lg font-bold">
+                    {parseFloat(rate.price).toFixed(2)} €
                   </div>
                 </div>
-
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                    onClick={onClose}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm ${
-                      selectedRate
-                        ? 'bg-blue-600 hover:bg-blue-500'
-                        : 'bg-gray-400 cursor-not-allowed'
-                    }`}
-                    onClick={handleValidate}
-                    disabled={!selectedRate}
-                  >
-                    Valider
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              </button>
+            ))}
           </div>
         </div>
-      </Dialog>
-    </Transition.Root>
+      </div>
+    </motion.div>
   );
 }

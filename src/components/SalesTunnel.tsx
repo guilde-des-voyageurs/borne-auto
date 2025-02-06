@@ -2,44 +2,48 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ProductDetail from './ProductDetail';
-import SuccessSlide from './SuccessSlide';
-import { getDefaultImageByType } from '../constants/images';
-import { useCart } from '../context/CartContext';
-import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
-type Slide = 'types' | 'products' | 'variants' | 'success';
+interface Product {
+  id: string;
+  title: string;
+  product_type: string;
+  variants: Variant[];
+  images: Image[];
+}
 
-interface SuccessInfo {
-  productTitle: string;
-  productImage: string;
-  variant: string;
+interface Variant {
+  id: string;
+  title: string;
+  price: string;
+  weight: number;
+  weight_unit: string;
+  available: boolean;
+}
+
+interface Image {
+  id: string;
+  src: string;
+  alt?: string;
 }
 
 interface SalesTunnelProps {
-  products: any[];
+  products: Product[];
 }
 
 export default function SalesTunnel({ products }: SalesTunnelProps) {
   const [mounted, setMounted] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState<Slide>('types');
+  const [currentSlide, setCurrentSlide] = useState<'types' | 'products' | 'variants' | 'success'>('types');
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
-  const { state } = useCart();
-  const pathname = usePathname();
-
-  // Vérifier si le panier doit être affiché (page d'accueil et non vide)
-  const isCartVisible = pathname === '/' && Object.keys(state.items).length > 0;
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ productTitle: string; productImage: string; variant: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Liste des catégories à exclure
   const excludedTypes = ['Sweatshirt Drummer'];
 
-  // Extraire les types uniques des produits en excluant les types non désirés
   const productTypes = Array.from(new Set(
     products
       .map(product => product.product_type)
@@ -51,16 +55,15 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     setCurrentSlide('products');
   };
 
-  const handleProductSelect = (product: any) => {
+  const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setCurrentSlide('variants');
   };
 
-  const handleProductAdded = (info: SuccessInfo) => {
+  const handleProductAdded = (info: { productTitle: string; productImage: string; variant: string }) => {
     setSuccessInfo(info);
     setCurrentSlide('success');
-    
-    // Retourner à la première slide après 2 secondes
+
     setTimeout(() => {
       setCurrentSlide('types');
       setSelectedType(null);
@@ -97,7 +100,7 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     : [];
 
   return (
-    <div className={`mx-auto p-8 transition-all duration-300 ${isCartVisible ? 'pr-96' : ''}`}>
+    <div className={`mx-auto p-8 transition-all duration-300`}>
       {currentSlide !== 'types' && currentSlide !== 'success' && (
         <button
           onClick={handleBack}
@@ -131,9 +134,11 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
                   className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
                 >
                   <div className="aspect-w-16 aspect-h-9">
-                    <img
-                      src={getDefaultImageByType(type)}
+                    <Image
+                      src={`/images/${type.toLowerCase()}.jpg`}
                       alt={type}
+                      width={300}
+                      height={300}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -156,7 +161,7 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             transition={{ duration: 0.3 }}
           >
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold text-white mb-4">C'est noté ✨</h1>
+              <h1 className="text-4xl font-bold text-white mb-4">C&apos;est noté ✨</h1>
               <p className="text-2xl text-white">On part sur quel motif du coup ?</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -169,9 +174,11 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
                   className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
                 >
                   <div className="aspect-w-16 aspect-h-9">
-                    <img
-                      src={product.image || getDefaultImageByType(product.product_type)}
+                    <Image
+                      src={product.images && product.images.length > 0 ? product.images[0].src : `/images/${product.product_type.toLowerCase()}.jpg`}
                       alt={product.title}
+                      width={300}
+                      height={300}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -193,10 +200,25 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <ProductDetail
-              product={selectedProduct}
-              onProductAdded={handleProductAdded}
-            />
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-white mb-4">Sélectionnez une variante</h1>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {selectedProduct.variants.map((variant) => (
+                <motion.div
+                  key={variant.id}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleProductAdded({ productTitle: selectedProduct.title, productImage: selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images[0].src : `/images/${selectedProduct.product_type.toLowerCase()}.jpg`, variant: variant.title })}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
+                >
+                  <div className="p-4">
+                    <h3 className="text-xl font-semibold text-center">{variant.title}</h3>
+                    <p className="text-gray-500">{variant.price} €</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         )}
 
@@ -209,11 +231,28 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
             exit="exit"
             transition={{ duration: 0.3 }}
           >
-            <SuccessSlide
-              title={successInfo.productTitle}
-              image={successInfo.productImage}
-              variant={successInfo.variant}
-            />
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-white mb-4">Produit ajouté avec succès !</h1>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <motion.div
+                className="bg-white rounded-xl shadow-lg overflow-hidden"
+              >
+                <div className="aspect-w-16 aspect-h-9">
+                  <Image
+                    src={successInfo.productImage}
+                    alt={successInfo.productTitle}
+                    width={300}
+                    height={300}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4">
+                  <h3 className="text-xl font-semibold text-center">{successInfo.productTitle}</h3>
+                  <p className="text-gray-500">{successInfo.variant}</p>
+                </div>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

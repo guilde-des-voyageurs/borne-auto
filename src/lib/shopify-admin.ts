@@ -14,7 +14,7 @@ class ShopifyAdmin {
     this.accessToken = accessToken;
   }
 
-  private async request(endpoint: string, options: RequestInit = {}) {
+  private async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
@@ -30,27 +30,27 @@ class ShopifyAdmin {
     return response;
   }
 
-  async get(endpoint: string) {
+  async get(endpoint: string): Promise<Response> {
     return this.request(endpoint, {
       method: 'GET'
     });
   }
 
-  async post(endpoint: string, data: any) {
+  async post(endpoint: string, data: object): Promise<Response> {
     return this.request(endpoint, {
       method: 'POST',
       body: JSON.stringify(data)
     });
   }
 
-  async put(endpoint: string, data: any) {
+  async put(endpoint: string, data: object): Promise<Response> {
     return this.request(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data)
     });
   }
 
-  async delete(endpoint: string) {
+  async delete(endpoint: string): Promise<Response> {
     return this.request(endpoint, {
       method: 'DELETE'
     });

@@ -1,53 +1,104 @@
-interface LineItem {
+interface DraftOrderLineItem {
   variant_id: string;
   quantity: number;
 }
 
-interface Customer {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address1: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  acceptsMarketing: boolean;
-}
-
 interface DraftOrderInput {
-  items: { [variantId: string]: any };
-  shippingLine?: {
-    title: string;
-    price: string;
-    shippingRateId: string;
+  line_items: DraftOrderLineItem[];
+  customer?: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
   };
-  customer: Customer;
+  shipping_address?: {
+    first_name: string;
+    last_name: string;
+    address1: string;
+    city: string;
+    province: string;
+    country: string;
+    zip: string;
+    phone: string;
+  };
 }
 
-export async function createDraftOrder({ items, shippingLine, customer }: DraftOrderInput) {
-  try {
-    console.log('Items envoyés à l\'API:', items);
-    console.log('Méthode d\'expédition:', shippingLine);
-    console.log('Informations client:', customer);
-    
-    const response = await fetch('/api/draft-orders', {
+interface DraftOrderResponse {
+  draft_order: {
+    id: string;
+    order_id: string | null;
+    name: string;
+    customer: {
+      id: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+    };
+    line_items: Array<{
+      id: string;
+      variant_id: string;
+      product_id: string;
+      title: string;
+      variant_title: string;
+      quantity: number;
+      price: string;
+    }>;
+    shipping_address: {
+      first_name: string;
+      last_name: string;
+      address1: string;
+      city: string;
+      province: string;
+      country: string;
+      zip: string;
+      phone: string;
+    };
+    subtotal_price: string;
+    total_price: string;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
+export async function createDraftOrder(data: DraftOrderInput): Promise<DraftOrderResponse> {
+  const response = await fetch(
+    `${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders.json`,
+    {
       method: 'POST',
       headers: {
+        'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ items, shippingLine, customer }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error creating draft order');
+      body: JSON.stringify({ draft_order: data }),
     }
+  );
 
-    const data = await response.json();
-    return data.draft_order;
-  } catch (error) {
-    console.error('Error creating draft order:', error instanceof Error ? error.message : 'Unknown error');
-    throw error;
+  if (!response.ok) {
+    throw new Error('Failed to create draft order');
   }
+
+  return response.json();
+}
+
+export async function updateDraftOrder(
+  id: string,
+  data: Partial<DraftOrderInput>
+): Promise<DraftOrderResponse> {
+  const response = await fetch(
+    `${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders/${id}.json`,
+    {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN!,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ draft_order: data }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to update draft order');
+  }
+
+  return response.json();
 }

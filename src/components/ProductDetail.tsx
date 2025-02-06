@@ -3,55 +3,64 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getDefaultImageByProduct } from '../constants/images';
 import { useCart } from '../context/CartContext';
+import Image from 'next/image';
 
-interface Variant {
+interface ProductVariant {
   id: string;
   title: string;
   price: string;
-  option1: string | null; // Couleur
-  option2: string | null; // Taille
-  image_id: string | null;
-  weight: number | null;
-  weight_unit: string | null;
-  admin_graphql_api_id: string | null;
-  image: string | null;
+  weight: number;
+  weight_unit: string;
+  available: boolean;
+}
+
+interface ProductImage {
+  src: string;
+  alt?: string;
+}
+
+interface Product {
+  id: string;
+  title: string;
+  variants: ProductVariant[];
+  images: ProductImage[];
 }
 
 interface ProductDetailProps {
-  product: any;
+  product: Product;
   onProductAdded: (info: { productTitle: string; productImage: string; variant: string }) => void;
 }
 
 // Fonction utilitaire pour précharger une image
 const preloadImage = (src: string) => {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(src);
-    img.onerror = reject;
-    img.src = src;
+    const image = new Image();
+    image.onload = () => resolve(src);
+    image.onerror = reject;
+    image.src = src;
   });
 };
 
 export default function ProductDetail({ product, onProductAdded }: ProductDetailProps) {
   // Extraire les options uniques
-  const colors = Array.from(new Set(product.variants.map(v => v.option1).filter(Boolean)));
-  const sizes = Array.from(new Set(product.variants.map(v => v.option2).filter(Boolean)));
+  const colors = Array.from(new Set(product.variants.map(v => v.title).filter(Boolean)));
+  const sizes = Array.from(new Set(product.variants.map(v => v.weight_unit).filter(Boolean)));
 
   // Initialiser avec la première couleur et la taille M si disponible
   const [selectedColor, setSelectedColor] = useState<string | null>(() => colors[0] || null);
   const [selectedSize, setSelectedSize] = useState<string | null>(() => {
     // Si la taille M est disponible pour la première couleur, la sélectionner
-    const mSizeAvailable = product.variants.some(v => v.option1 === colors[0] && v.option2 === 'M');
+    const mSizeAvailable = product.variants.some(v => v.title === colors[0] && v.weight_unit === 'M');
     if (mSizeAvailable) {
       return 'M';
     }
     // Sinon, prendre la première taille disponible pour cette couleur
-    const firstAvailableSize = product.variants.find(v => v.option1 === colors[0])?.option2;
+    const firstAvailableSize = product.variants.find(v => v.title === colors[0])?.weight_unit;
     return firstAvailableSize || null;
   });
 
   const [currentImage, setCurrentImage] = useState<string>(
-    getDefaultImageByProduct(product.title, product.product_type)
+    getDefaultImageByProduct(product.title, product.title)
   );
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
@@ -61,12 +70,12 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
   // Précharger toutes les images des variantes au montage du composant
   useEffect(() => {
     const loadAllImages = async () => {
-      const imagesToLoad = product.variants
-        .map((v: Variant) => v.image)
-        .filter((img: string | null): img is string => Boolean(img));
+      const imagesToLoad = product.images
+        .map((img: ProductImage) => img.src)
+        .filter((img: string): img is string => Boolean(img));
 
       // Ajouter l'image par défaut
-      const defaultImage = getDefaultImageByProduct(product.title, product.product_type);
+      const defaultImage = getDefaultImageByProduct(product.title, product.title);
       if (defaultImage) {
         imagesToLoad.push(defaultImage);
       }
@@ -90,8 +99,8 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
     
     return new Set(
       product.variants
-        .filter(v => v.option1 === selectedColor)
-        .map(v => v.option2)
+        .filter(v => v.title === selectedColor)
+        .map(v => v.weight_unit)
         .filter(Boolean)
     );
   }, [selectedColor, product.variants, sizes]);
@@ -111,38 +120,40 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
   }, [selectedColor, availableSizes, selectedSize]);
 
   // Trouver la variante sélectionnée
-  const selectedVariant = product.variants.find(
-    v => v.option1 === selectedColor && v.option2 === selectedSize
-  );
+  const selectedVariantId = product.variants.find(
+    (variant) => variant.title === selectedColor && variant.weight_unit === selectedSize
+  )?.id;
 
   // Mettre à jour l'image en fonction de la sélection
   useEffect(() => {
-    if (selectedVariant) {
+    if (selectedVariantId) {
       setIsImageLoading(true);
-      const newImage = selectedVariant.image || getDefaultImageByProduct(product.title, product.product_type);
+      const newImage = product.images.find((img) => img.src === selectedVariantId)?.src || getDefaultImageByProduct(product.title, product.title);
       
       if (preloadedImages.has(newImage)) {
         setCurrentImage(newImage);
         setIsImageLoading(false);
       } else {
-        preloadImage(newImage)
-          .then(() => {
-            setCurrentImage(newImage);
-            setPreloadedImages(prev => new Set([...prev, newImage]));
-          })
-          .finally(() => {
-            setIsImageLoading(false);
+        const img = new Image();
+        img.src = newImage;
+        img.onload = () => {
+          setCurrentImage(newImage);
+          setIsImageLoading(false);
+          setPreloadedImages(prev => {
+            const newSet = new Set(prev);
+            newSet.add(newImage);
+            return newSet;
           });
+        };
       }
     }
-  }, [selectedVariant, product.title, product.product_type, preloadedImages]);
+  }, [selectedVariantId, product.title, product.images, preloadedImages]);
 
   const handleAddToCart = () => {
-    if (selectedVariant) {
-      console.log('Variant sélectionnée:', selectedVariant);
+    if (selectedVariantId) {
+      console.log('Variant sélectionnée:', selectedVariantId);
       
-      const variantId = selectedVariant.admin_graphql_api_id || `gid://shopify/ProductVariant/${selectedVariant.id}`;
-      const productId = product.admin_graphql_api_id || `gid://shopify/Product/${product.id}`;
+      const variantId = selectedVariantId;
       
       dispatch({
         type: 'ADD_ITEM',
@@ -150,11 +161,11 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
           variantId,
           title: product.title,
           variantTitle: `${selectedColor} - ${selectedSize}`,
-          price: selectedVariant.price,
+          price: product.variants.find(v => v.id === selectedVariantId)?.price,
           image: currentImage,
           quantity: 1,
-          weight: selectedVariant.weight || 0,
-          weight_unit: selectedVariant.weight_unit || 'kg'
+          weight: product.variants.find(v => v.id === selectedVariantId)?.weight,
+          weight_unit: product.variants.find(v => v.id === selectedVariantId)?.weight_unit
         }
       });
 
@@ -178,7 +189,7 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
-        <img
+        <Image
           src={currentImage}
           alt={product.title}
           className={`max-h-full w-auto object-contain rounded-lg transition-opacity duration-300 ${
