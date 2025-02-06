@@ -4,6 +4,7 @@ import React, { Fragment } from 'react';
 import { useCart } from '../context/CartContext';
 import { useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { XMarkIcon } from './icons';
 
 interface CartItem {
   productId: string;
@@ -174,9 +175,9 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                  <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-white">
                     Résumé de la commande
                   </Dialog.Title>
                   <button
@@ -201,15 +202,15 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                 <div className="mt-3 text-center sm:mt-5">
                   <div className="mt-2">
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-900">Articles</h4>
-                      <ul className="mt-2 divide-y divide-gray-200">
-                        {Object.values(state.items).map((item) => (
-                          <li key={item.productId} className="flex items-center justify-between py-2">
+                      <h4 className="text-sm font-medium text-white">Articles</h4>
+                      <ul className="mt-2 divide-y divide-gray-700">
+                        {Object.entries(state.items).map(([variantId, item]) => (
+                          <li key={variantId} className="flex items-center justify-between py-2">
                             <div className="flex items-center">
-                              <span className="ml-2 text-sm text-gray-500">{item.title}</span>
-                              <span className="ml-1 text-sm text-gray-500">({item.quantity}x)</span>
+                              <span className="ml-2 text-sm text-gray-300">{item.title}</span>
+                              <span className="ml-1 text-sm text-gray-300">({item.quantity}x)</span>
                             </div>
-                            <span className="text-sm font-medium text-gray-900">
+                            <span className="text-sm font-medium text-white">
                               {(parseFloat(item.price) * item.quantity).toFixed(2)} €
                             </span>
                           </li>
@@ -218,10 +219,10 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                     </div>
 
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-900">Informations client</h4>
+                      <h4 className="text-sm font-medium text-white">Informations client</h4>
                       <div className="mt-2 grid grid-cols-2 gap-4">
                         <div>
-                          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="firstName" className="block text-sm font-medium text-gray-300">
                             Prénom
                           </label>
                           <input
@@ -230,11 +231,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="firstName"
                             value={customerInfo.firstName}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div>
-                          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="lastName" className="block text-sm font-medium text-gray-300">
                             Nom
                           </label>
                           <input
@@ -243,11 +244,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="lastName"
                             value={customerInfo.lastName}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div>
-                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-300">
                             Email
                           </label>
                           <input
@@ -256,11 +257,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="email"
                             value={customerInfo.email}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div>
-                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-300">
                             Téléphone
                           </label>
                           <input
@@ -269,11 +270,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="phone"
                             value={customerInfo.phone}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div className="col-span-2">
-                          <label htmlFor="address1" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="address1" className="block text-sm font-medium text-gray-300">
                             Adresse
                           </label>
                           <input
@@ -282,11 +283,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="address1"
                             value={customerInfo.address1}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div>
-                          <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="city" className="block text-sm font-medium text-gray-300">
                             Ville
                           </label>
                           <input
@@ -295,11 +296,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="city"
                             value={customerInfo.city}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div>
-                          <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="postalCode" className="block text-sm font-medium text-gray-300">
                             Code postal
                           </label>
                           <input
@@ -308,11 +309,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             id="postalCode"
                             value={customerInfo.postalCode}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           />
                         </div>
                         <div>
-                          <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="country" className="block text-sm font-medium text-gray-300">
                             Pays
                           </label>
                           <select
@@ -320,7 +321,7 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                             name="country"
                             value={customerInfo.country}
                             onChange={handleCustomerInfoChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           >
                             <option value="">Sélectionnez un pays</option>
                             <option value="FR">France</option>
@@ -340,11 +341,11 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                                 type="checkbox"
                                 checked={customerInfo.acceptsMarketing}
                                 onChange={handleCustomerInfoChange}
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                className="h-4 w-4 rounded border-gray-700 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
                               />
                             </div>
                             <div className="ml-3 text-sm">
-                              <label htmlFor="acceptsMarketing" className="font-medium text-gray-700">
+                              <label htmlFor="acceptsMarketing" className="font-medium text-gray-300">
                                 Accepter de recevoir des communications marketing
                               </label>
                             </div>
@@ -354,19 +355,19 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                     </div>
 
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-900">Résumé</h4>
+                      <h4 className="text-sm font-medium text-white">Résumé</h4>
                       <div className="mt-2 space-y-4">
                         {/* Promotions */}
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-blue-800 mb-2">Promotions disponibles</h4>
-                          <ul className="text-sm space-y-1 text-blue-700">
+                        <div className="bg-gray-700 p-3 rounded-lg">
+                          <h4 className="font-medium text-white mb-2">Promotions disponibles</h4>
+                          <ul className="text-sm space-y-1 text-gray-300">
                             {[
                               { id: "promo-2", threshold: 2, discount: 5 },
                               { id: "promo-3", threshold: 3, discount: 10 },
                               { id: "promo-4", threshold: 4, discount: 15 }
                             ].map((promo) => (
                               <li key={promo.id} className="flex items-center">
-                                <span className={calculateTotalItems(state) >= promo.threshold ? "text-green-600 font-medium" : ""}>
+                                <span className={calculateTotalItems(state) >= promo.threshold ? "text-indigo-400 font-medium" : ""}>
                                   {promo.threshold} articles : -{promo.discount}% sur le panier
                                 </span>
                               </li>
@@ -376,17 +377,17 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
 
                         {/* Totaux */}
                         <div className="space-y-2">
-                          <div className="flex justify-between text-sm text-gray-500">
+                          <div className="flex justify-between text-sm text-gray-300">
                             <span>Sous-total</span>
                             <span>{calculateSubtotal(state).toFixed(2)} €</span>
                           </div>
                           {calculateDiscount(state) > 0 && (
-                            <div className="flex justify-between text-green-600">
+                            <div className="flex justify-between text-sm text-indigo-400">
                               <span>Remise ({getDiscountPercentage(calculateTotalItems(state))}%)</span>
                               <span>-{calculateDiscount(state).toFixed(2)} €</span>
                             </div>
                           )}
-                          <div className="flex justify-between font-bold text-lg border-t pt-2">
+                          <div className="flex justify-between text-base font-medium text-white">
                             <span>Total</span>
                             <span>{calculateTotal(state).toFixed(2)} €</span>
                           </div>
@@ -413,7 +414,7 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                   </button>
                   <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-gray-700 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-600 hover:bg-gray-600 sm:col-start-1 sm:mt-0"
                     onClick={onClose}
                   >
                     Annuler

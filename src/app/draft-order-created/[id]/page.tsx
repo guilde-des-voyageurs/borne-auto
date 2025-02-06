@@ -1,7 +1,9 @@
-'use server';
+'use client';
 
 import CancelOrderButton from '@/components/CancelOrderButton';
 import DraftOrderDisplay from '@/components/DraftOrderDisplay';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -41,19 +43,36 @@ export default async function DraftOrderCreatedPage({ params, searchParams }: Pr
 
   if (!draftOrder) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <h1 className="text-3xl font-bold text-red-600 mb-4">
-            Commande non trouvée
-          </h1>
+      <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
+        <div className="text-center max-w-2xl mx-auto">
+          <h1 className="text-4xl font-bold mb-6">Commande non trouvée</h1>
+          <p className="text-xl text-gray-300 mb-4">
+            Veuillez vérifier l&apos;ID de la commande.
+          </p>
         </div>
-      </div>
+      </main>
     );
   }
 
-  return <DraftOrderDisplay 
-    name={searchParams.name} 
-    draftOrderId={resolvedParams.id} 
-    orderNumber={draftOrder.name}
-  />;
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
+      <div className="text-center max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold mb-6">🎉 Commande créée avec succès !</h1>
+        <DraftOrderDisplay 
+          name={searchParams.name} 
+          draftOrderId={resolvedParams.id} 
+          orderNumber={draftOrder.name}
+        />
+        <p className="text-xl text-gray-300 mb-8">
+          Nous allons la traiter dans les plus brefs délais.
+        </p>
+        <button
+          onClick={() => useRouter().push('/')}
+          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Retour à l&apos;accueil
+        </button>
+      </div>
+    </main>
+  );
 }

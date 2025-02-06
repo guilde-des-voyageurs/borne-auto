@@ -2,20 +2,16 @@
 
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
+export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main 
-      className="min-h-screen bg-gray-900 flex flex-col items-center justify-center cursor-pointer"
+    <main
       onClick={() => router.push('/selection')}
+      className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white cursor-pointer transition-colors hover:bg-gray-800"
     >
-      <h1 className="text-6xl font-bold text-white mb-6">
-        Impression à la demande
-      </h1>
-      <p className="text-2xl text-gray-300">
-        Toucher l&apos;écran pour commencer
-      </p>
+      <h1 className="text-4xl font-bold mb-4">Impression à la demande</h1>
+      <p className="text-xl text-gray-300">Toucher l'écran pour commencer</p>
     </main>
   );
 }

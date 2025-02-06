@@ -121,26 +121,26 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
               <h1 className="text-4xl font-bold text-white mb-4">Bonjour 👋</h1>
               <p className="text-2xl text-white">Quelle base souhaitez-vous ?</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {productTypes.map((type) => (
-                <motion.div
+                <div
                   key={type}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleTypeSelect(type)}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
+                  className="relative flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-sm hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
                 >
-                  <div className="aspect-w-16 aspect-h-9">
+                  <div className="aspect-h-1 aspect-w-1 bg-gray-800">
                     <img
                       src={getDefaultImageByType(type)}
                       alt={type}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover object-center"
                     />
                   </div>
-                  <div className="p-4">
-                    <h3 className="text-xl font-semibold text-center">{type}</h3>
+                  <div className="flex flex-1 flex-col space-y-2 p-4">
+                    <h3 className="text-sm font-medium text-white">
+                      {type}
+                    </h3>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </motion.div>
@@ -159,26 +159,26 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
               <h1 className="text-4xl font-bold text-white mb-4">C'est noté ✨</h1>
               <p className="text-2xl text-white">On part sur quel motif du coup ?</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredProducts.map((product) => (
-                <motion.div
+                <div
                   key={product.id}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleProductSelect(product)}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
+                  className="relative flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-sm hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
                 >
-                  <div className="aspect-w-16 aspect-h-9">
+                  <div className="aspect-h-1 aspect-w-1 bg-gray-800">
                     <img
                       src={product.image || getDefaultImageByType(product.product_type)}
                       alt={product.title}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover object-center"
                     />
                   </div>
-                  <div className="p-4">
-                    <h3 className="text-xl font-semibold text-center">{product.title}</h3>
+                  <div className="flex flex-1 flex-col space-y-2 p-4">
+                    <h3 className="text-sm font-medium text-white">
+                      {product.title}
+                    </h3>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </motion.div>

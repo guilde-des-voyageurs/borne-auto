@@ -19,69 +19,47 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log('Received body:', body);
+    const { line_items, customer, applied_discount } = body;
 
-    if (!body.line_items || !Array.isArray(body.line_items)) {
-      console.error('Invalid line_items:', body.line_items);
+    if (!line_items || !Array.isArray(line_items)) {
       return NextResponse.json(
         { error: 'line_items must be an array' },
         { status: 400 }
       );
     }
 
-    if (!body.customer) {
-      console.error('Missing customer information');
+    if (!customer) {
       return NextResponse.json(
         { error: 'customer information is required' },
         { status: 400 }
       );
     }
 
-    // S'assurer que variant_id est une string
-    const formattedLineItems = body.line_items.map((item: any) => ({
-      variant_id: item.variant_id.toString(),
-      quantity: item.quantity
-    }));
-
-    // Construire l'adresse de livraison
-    const shipping_address = {
-      first_name: body.customer.firstName,
-      last_name: body.customer.lastName,
-      address1: body.customer.address1,
-      city: body.customer.city,
-      phone: body.customer.phone,
-      zip: body.customer.postalCode,
-      country_code: body.customer.country
+    const customerData = {
+      first_name: customer.firstName,
+      last_name: customer.lastName,
+      email: customer.email,
+      phone: customer.phone,
+      addresses: [
+        {
+          address1: customer.address1,
+          city: customer.city,
+          province: '',
+          zip: customer.postalCode,
+          country_code: customer.country,
+        },
+      ],
+      accepts_marketing: customer.acceptsMarketing,
     };
-
-    // Préparer les données du client
-    const customer = {
-      first_name: body.customer.firstName,
-      last_name: body.customer.lastName,
-      email: body.customer.email,
-      phone: body.customer.phone,
-      accepts_marketing: body.customer.acceptsMarketing
-    };
-
-    // Logs détaillés du client
-    console.log('=== INFORMATIONS CLIENT ===');
-    console.log(`Nom: ${customer.first_name} ${customer.last_name}`);
-    console.log(`Email: ${customer.email}`);
-    console.log(`Téléphone: ${customer.phone}`);
-    console.log('========================');
-
-    // Debug: voir les données envoyées
-    console.log('Customer data being sent:', customer);
 
     const draftOrderData = {
       draft_order: {
-        line_items: formattedLineItems,
-        customer,
-        email: body.customer.email, // Ajouter l'email au niveau de la commande aussi
-        shipping_address,
+        line_items,
+        customer: customerData,
+        email: customer.email,
         use_customer_default_address: false,
-        applied_discount: body.applied_discount // Ajouter la remise si elle existe
-      }
+        ...(applied_discount && { applied_discount }),
+      },
     };
 
     if (body.shippingLine) {
@@ -92,24 +70,18 @@ export async function POST(request: Request) {
       };
     }
 
-    // Debug: voir les données complètes envoyées à Shopify
-    console.log('Data being sent to Shopify:', JSON.stringify(draftOrderData, null, 2));
-
-    const response = await fetch(
-      `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN
-        },
-        body: JSON.stringify(draftOrderData)
-      }
-    );
+    const url = new URL('/admin/api/2024-01/draft_orders.json', process.env.SHOPIFY_STORE_URL);
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN || '',
+      },
+      body: JSON.stringify(draftOrderData),
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Shopify API error:', errorData);
       return NextResponse.json(
         { error: 'Failed to create draft order' },
         { status: response.status }
@@ -119,9 +91,8 @@ export async function POST(request: Request) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in draft order creation:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'An error occurred' },
       { status: 500 }
     );
   }

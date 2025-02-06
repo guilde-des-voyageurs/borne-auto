@@ -139,7 +139,6 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
 
   const handleAddToCart = () => {
     if (selectedVariant) {
-      console.log('Variant sélectionnée:', selectedVariant);
       
       const variantId = selectedVariant.admin_graphql_api_id || `gid://shopify/ProductVariant/${selectedVariant.id}`;
       const productId = product.admin_graphql_api_id || `gid://shopify/Product/${product.id}`;
@@ -157,9 +156,6 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
           weight_unit: selectedVariant.weight_unit || 'kg'
         }
       });
-
-      // Log pour déboguer
-      console.log('Image envoyée à SuccessSlide:', currentImage);
 
       onProductAdded({
         productTitle: product.title,

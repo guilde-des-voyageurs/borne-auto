@@ -14,7 +14,7 @@ export default function SelectionLayout({ children }: SelectionLayoutProps) {
     <main 
       className="min-h-screen relative transition-all duration-300" 
       style={{ 
-        backgroundColor: '#999',
+        backgroundColor: '#1a1a1a',
         paddingRight: isCartOpen ? '400px' : '0'
       }}
     >

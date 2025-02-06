@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import CartSummaryModal from './CartSummaryModal';
 import ShippingRatesModal from './ShippingRatesModal';
 import { usePathname } from 'next/navigation';
+import { TrashIcon, MinusIcon, PlusIcon } from './icons';
 
 interface Customer {
   firstName: string;
@@ -102,18 +103,11 @@ export default function Cart() {
     try {
       const line_items = Object.entries(state.items).map(([variantId, item]) => {
         const extractedVariantId = variantId.split('/').pop() || '';
-        console.log('Processing variant:', {
-          original: variantId,
-          extracted: extractedVariantId
-        });
-        
         return {
           variant_id: extractedVariantId,
           quantity: item.quantity
         };
       });
-
-      console.log('Sending line_items:', line_items);
 
       const discountPercentage = getDiscountPercentage(calculateTotalItems());
       const discountData = discountPercentage > 0 ? {
@@ -165,125 +159,124 @@ export default function Cart() {
           initial={{ width: 0, opacity: 0 }}
           animate={{ width: "24rem", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
-          className="fixed top-0 right-0 h-screen bg-white border-l shadow-lg overflow-hidden flex flex-col"
+          className="fixed inset-y-0 right-0 w-[400px] bg-gray-800 border-l border-gray-700 shadow-xl overflow-hidden"
         >
-          {/* En-tête fixe */}
-          <div className="flex justify-between items-center p-4 border-b bg-white">
-            <h2 className="text-xl font-bold">Panier</h2>
-            <button
-              onClick={clearCart}
-              className="text-red-600 hover:text-red-800 transition-colors"
-            >
-              Vider le panier
-            </button>
-          </div>
-
-          {/* Zone de défilement pour les articles */}
-          <div className="flex-1 overflow-auto p-4">
-            <div className="space-y-4">
-              {Object.entries(state.items).map(([variantId, item]) => (
-                <div
-                  key={variantId}
-                  className="flex items-start gap-4 bg-gray-50 p-4 rounded-lg"
-                >
-                  {item.image && (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-medium">{item.title}</h3>
-                    <p className="text-sm text-gray-600">{item.variantTitle}</p>
-                    <p className="text-sm text-gray-600">
-                      Prix unitaire : {item.price} €
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Poids unitaire : {formatWeight(item.weight, item.weight_unit)}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => updateQuantity(variantId, item.quantity - 1)}
-                        className="p-1 hover:bg-gray-200 rounded transition-colors"
-                      >
-                        -
-                      </button>
-                      <span className="px-2">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(variantId, item.quantity + 1)}
-                        className="p-1 hover:bg-gray-200 rounded transition-colors"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => removeItem(variantId)}
-                        className="ml-2 text-red-600 hover:text-red-800 transition-colors"
-                      >
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
+          <div className="h-full flex flex-col">
+            <div className="flex-1 overflow-y-auto py-6 px-4 sm:px-6">
+              <div className="flex items-start justify-between">
+                <h2 className="text-lg font-medium text-white">Panier</h2>
+                <div className="ml-3 flex h-7 items-center">
+                  <button
+                    type="button"
+                    className="relative -m-2 p-2 text-gray-400 hover:text-gray-300"
+                    onClick={clearCart}
+                  >
+                    <span className="absolute -inset-0.5" />
+                    <span className="sr-only">Vider le panier</span>
+                    <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Pied de page fixe */}
-          <div className="p-4 border-t bg-white space-y-4">
-            {/* Informations sur les promotions */}
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <h3 className="font-medium text-blue-800 mb-2">Promotions en cours :</h3>
-              <ul className="text-sm space-y-1 text-blue-700">
-                <li className="flex items-center">
-                  <span className={calculateTotalItems() >= 2 ? "text-green-600 font-medium" : ""}>
-                    2 articles : -5% sur le panier
-                  </span>
-                </li>
-                <li className="flex items-center">
-                  <span className={calculateTotalItems() >= 3 ? "text-green-600 font-medium" : ""}>
-                    3 articles : -10% sur le panier
-                  </span>
-                </li>
-                <li className="flex items-center">
-                  <span className={calculateTotalItems() >= 4 ? "text-green-600 font-medium" : ""}>
-                    4 articles : -15% sur le panier
-                  </span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Résumé des prix */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Sous-total :</span>
-                <span>{calculateSubtotal().toFixed(2)} €</span>
               </div>
 
+              <div className="mt-8">
+                <div className="flow-root">
+                  <ul role="list" className="-my-6 divide-y divide-gray-700">
+                    {Object.entries(state.items).map(([variantId, item]) => (
+                      <li key={variantId} className="flex py-6">
+                        <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-700 bg-gray-900">
+                          <img
+                            src={item.image || '/placeholder.png'}
+                            alt={item.title}
+                            className="h-full w-full object-cover object-center"
+                          />
+                        </div>
+
+                        <div className="ml-4 flex flex-1 flex-col">
+                          <div>
+                            <div className="flex justify-between text-base font-medium text-white">
+                              <h3>{item.title}</h3>
+                              <p className="ml-4">{(parseFloat(item.price) * item.quantity).toFixed(2)} €</p>
+                            </div>
+                            <p className="mt-1 text-sm text-gray-400">{item.variantTitle}</p>
+                          </div>
+                          <div className="flex flex-1 items-end justify-between text-sm">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => updateQuantity(variantId, item.quantity - 1)}
+                                className="text-gray-400 hover:text-gray-300"
+                              >
+                                <MinusIcon className="h-5 w-5" />
+                              </button>
+                              <p className="text-white">{item.quantity}</p>
+                              <button
+                                onClick={() => updateQuantity(variantId, item.quantity + 1)}
+                                className="text-gray-400 hover:text-gray-300"
+                              >
+                                <PlusIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+
+                            <div className="flex">
+                              <button
+                                type="button"
+                                onClick={() => removeItem(variantId)}
+                                className="font-medium text-indigo-400 hover:text-indigo-300"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-700 py-6 px-4 sm:px-6">
+              <div className="flex justify-between text-base font-medium text-white">
+                <p>Sous-total</p>
+                <p>{calculateSubtotal().toFixed(2)} €</p>
+              </div>
               {calculateDiscount() > 0 && (
-                <div className="flex justify-between items-center text-green-600">
-                  <span>Remise ({getDiscountPercentage(calculateTotalItems())}%) :</span>
-                  <span>-{calculateDiscount().toFixed(2)} €</span>
+                <div className="flex justify-between text-sm text-indigo-400 mt-2">
+                  <p>Remise ({getDiscountPercentage(calculateTotalItems())}%)</p>
+                  <p>-{calculateDiscount().toFixed(2)} €</p>
                 </div>
               )}
-
-              <div className="flex justify-between items-center font-bold text-lg">
-                <span>Total :</span>
-                <span>{calculateTotal().toFixed(2)} €</span>
+              <div className="flex justify-between text-base font-medium text-white mt-2">
+                <p>Total</p>
+                <p>{calculateTotal().toFixed(2)} €</p>
+              </div>
+              <div className="mt-4">
+                <div className="rounded-md bg-gray-700 p-4">
+                  <h4 className="text-sm font-medium text-white mb-2">Promotions disponibles</h4>
+                  <ul className="text-sm space-y-1 text-gray-300">
+                    {[
+                      { id: "promo-2", threshold: 2, discount: 5 },
+                      { id: "promo-3", threshold: 3, discount: 10 },
+                      { id: "promo-4", threshold: 4, discount: 15 }
+                    ].map((promo) => (
+                      <li key={promo.id} className="flex items-center">
+                        <span className={calculateTotalItems() >= promo.threshold ? "text-indigo-400 font-medium" : ""}>
+                          {promo.threshold} articles : -{promo.discount}% sur le panier
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-gray-400">Frais de livraison calculés à la commande.</p>
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowSummary(true)}
+                  className="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700"
+                >
+                  Commander
+                </button>
               </div>
             </div>
-
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Poids total :</span>
-              <span>{formatWeight(calculateTotalWeight())} kg</span>
-            </div>
-
-            <button
-              onClick={() => setShowSummary(true)}
-              className="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition-colors"
-            >
-              Commander
-            </button>
           </div>
         </motion.div>
       </AnimatePresence>

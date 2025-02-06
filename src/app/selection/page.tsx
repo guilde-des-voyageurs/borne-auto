@@ -1,7 +1,13 @@
 import { getProducts } from '@/utils/shopify';
-import SelectionContent from '@/components/SelectionContent';
+import SalesTunnel from '@/components/SalesTunnel';
+import SelectionLayout from '@/components/SelectionLayout';
 
 export default async function SelectionPage() {
   const { products } = await getProducts();
-  return <SelectionContent products={products} />;
+
+  return (
+    <SelectionLayout>
+      <SalesTunnel products={products} />
+    </SelectionLayout>
+  );
 }
