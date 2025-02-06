@@ -1,7 +1,6 @@
 'use server';
 
 import CancelOrderButton from '@/components/CancelOrderButton';
-import SoundButton from '@/components/SoundButton';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -70,13 +69,12 @@ export default async function DraftOrderCreatedPage({ params, searchParams }: Pr
           Commande {orderNumber} en cours de création
         </h2>
         <p className="text-xl text-gray-600">
-          Votre commande est en cours de préparation. Veuillez patienter...
+          Un vendeur va venir finaliser ta commande. Merci de patienter, ou de nous faire signe 🥳
         </p>
       </div>
 
-      <div className="mt-8 w-full max-w-2xl space-y-4">
+      <div className="mt-8 w-full max-w-2xl">
         <CancelOrderButton draftOrderId={resolvedParams.id} />
-        <SoundButton />
       </div>
     </div>
   );

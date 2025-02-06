@@ -1,21 +1,36 @@
 'use client';
 
-interface CancelOrderButtonProps {
+interface Props {
   draftOrderId: string;
 }
 
-export default function CancelOrderButton({ draftOrderId }: CancelOrderButtonProps) {
+export default function CancelOrderButton({ draftOrderId }: Props) {
   const handleCancel = async () => {
-    // Au lieu de supprimer la commande, on redirige simplement vers l'accueil
-    window.location.href = '/';
+    try {
+      // Appeler l'API pour supprimer la commande
+      const response = await fetch(`/api/draft-orders/${draftOrderId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cancel order');
+      }
+
+      // Rediriger vers la page d'accueil
+      window.location.href = '/';
+      
+    } catch (error) {
+      console.error('Error canceling order:', error);
+      alert('Une erreur est survenue lors de l\'annulation de la commande');
+    }
   };
 
   return (
     <button
       onClick={handleCancel}
-      className="fixed bottom-8 right-8 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-colors"
+      className="fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors shadow-lg"
     >
-      Retour à l&apos;accueil
+      Annuler ma commande
     </button>
   );
 }

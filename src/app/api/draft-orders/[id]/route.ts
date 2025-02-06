@@ -1,34 +1,31 @@
 import { NextResponse } from 'next/server';
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
+interface Props {
+  params: {
+    id: string;
+  };
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: RouteParams
-) {
+export async function DELETE(request: Request, { params }: Props) {
   try {
     if (!process.env.SHOPIFY_STORE_URL || !process.env.SHOPIFY_ACCESS_TOKEN) {
       throw new Error('Missing Shopify credentials');
     }
 
-    const resolvedParams = await params;
-    const draftOrderId = resolvedParams.id;
+    const draftOrderId = params.id;
 
+    // Appeler l'API Shopify pour supprimer la commande
     const response = await fetch(
       `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/draft_orders/${draftOrderId}.json`,
       {
         method: 'DELETE',
         headers: {
-          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN
-        }
+          'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN,
+        },
       }
     );
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Shopify API error:', errorData);
       throw new Error('Failed to delete draft order');
     }
 
