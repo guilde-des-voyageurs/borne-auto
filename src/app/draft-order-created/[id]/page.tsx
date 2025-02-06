@@ -1,6 +1,7 @@
 'use server';
 
 import CancelOrderButton from '@/components/CancelOrderButton';
+import DraftOrderDisplay from '@/components/DraftOrderDisplay';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -50,32 +51,9 @@ export default async function DraftOrderCreatedPage({ params, searchParams }: Pr
     );
   }
 
-  // Utiliser le numéro de commande (D123) au lieu de l'ID interne
-  const orderNumber = draftOrder.name;
-  
-  // Récupérer le prénom depuis l'URL
-  const customerName = searchParams.name || 'client';
-
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 relative">
-      <div className="mb-8 text-center">
-        <h1 className="text-6xl font-bold text-green-600 mb-2">
-          Merci {customerName} !
-        </h1>
-      </div>
-
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8 text-center space-y-8">
-        <h2 className="text-4xl font-bold text-green-600">
-          Commande {orderNumber} en cours de création
-        </h2>
-        <p className="text-xl text-gray-600">
-          Un vendeur va venir finaliser ta commande. Merci de patienter, ou de nous faire signe 🥳
-        </p>
-      </div>
-
-      <div className="mt-8 w-full max-w-2xl">
-        <CancelOrderButton draftOrderId={resolvedParams.id} />
-      </div>
-    </div>
-  );
+  return <DraftOrderDisplay 
+    name={searchParams.name} 
+    draftOrderId={resolvedParams.id} 
+    orderNumber={draftOrder.name}
+  />;
 }
