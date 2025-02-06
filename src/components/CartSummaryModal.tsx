@@ -360,17 +360,17 @@ export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraft
                         <div className="bg-blue-50 p-3 rounded-lg">
                           <h4 className="font-medium text-blue-800 mb-2">Promotions disponibles</h4>
                           <ul className="text-sm space-y-1 text-blue-700">
-                            <li className="flex items-center">
+                            <li key="promo-2" className="flex items-center">
                               <span className={calculateTotalItems(state) >= 2 ? "text-green-600 font-medium" : ""}>
                                 2 articles : -5% sur le panier
                               </span>
                             </li>
-                            <li className="flex items-center">
+                            <li key="promo-3" className="flex items-center">
                               <span className={calculateTotalItems(state) >= 3 ? "text-green-600 font-medium" : ""}>
                                 3 articles : -10% sur le panier
                               </span>
                             </li>
-                            <li className="flex items-center">
+                            <li key="promo-4" className="flex items-center">
                               <span className={calculateTotalItems(state) >= 4 ? "text-green-600 font-medium" : ""}>
                                 4 articles : -15% sur le panier
                               </span>
