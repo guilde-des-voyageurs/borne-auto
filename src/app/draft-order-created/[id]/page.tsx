@@ -1,5 +1,7 @@
-import { notFound } from 'next/navigation';
+'use server';
+
 import CancelOrderButton from '@/components/CancelOrderButton';
+import SoundButton from '@/components/SoundButton';
 
 async function getDraftOrder(draftOrderId: string) {
   if (!process.env.SHOPIFY_STORE_URL || !process.env.SHOPIFY_ACCESS_TOKEN) {
@@ -27,19 +29,25 @@ async function getDraftOrder(draftOrderId: string) {
   return data.draft_order;
 }
 
-interface PageProps {
+interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function DraftOrderCreated({
-  params,
-}: PageProps) {
+export default async function DraftOrderCreatedPage({ params }: Props) {
   // Attendre les paramètres
   const resolvedParams = await params;
   const draftOrder = await getDraftOrder(resolvedParams.id);
 
   if (!draftOrder) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+          <h1 className="text-3xl font-bold text-red-600 mb-4">
+            Commande non trouvée
+          </h1>
+        </div>
+      </div>
+    );
   }
 
   // Utiliser le numéro de commande (D123) au lieu de l'ID interne
@@ -48,16 +56,18 @@ export default async function DraftOrderCreated({
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 relative">
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8 text-center space-y-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          La commande provisoire {orderNumber} a été créée
+        <h1 className="text-4xl font-bold text-green-600">
+          Commande {orderNumber} en cours de création
         </h1>
-        
-        <p className="text-xl text-gray-700">
-          Appelez un vendeur du stand pour valider l&apos;expédition et le paiement
+        <p className="text-xl text-gray-600">
+          Votre commande est en cours de préparation. Veuillez patienter...
         </p>
       </div>
 
-      <CancelOrderButton draftOrderId={resolvedParams.id} />
+      <div className="mt-8 w-full max-w-2xl space-y-4">
+        <CancelOrderButton draftOrderId={resolvedParams.id} />
+        <SoundButton />
+      </div>
     </div>
   );
 }

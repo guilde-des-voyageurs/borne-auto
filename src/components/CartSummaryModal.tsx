@@ -43,6 +43,22 @@ interface CartSummaryModalProps {
   }) => Promise<void>;
 }
 
+const playNotificationSound = async () => {
+  try {
+    const audio = new Audio('/notification.mp3');
+    
+    // Premier son
+    await audio.play();
+    
+    // Attendre 500ms puis jouer le deuxième son
+    await new Promise(resolve => setTimeout(resolve, 500));
+    audio.currentTime = 0;
+    await audio.play();
+  } catch (error) {
+    console.error('Erreur de lecture du son:', error);
+  }
+};
+
 export default function CartSummaryModal({ isOpen, onClose, state, onCreateDraftOrder }: CartSummaryModalProps) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);

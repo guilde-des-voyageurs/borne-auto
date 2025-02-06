@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { sendNotificationToAll } from '../notifications/route';
 
 interface CustomerInfo {
   firstName: string;
@@ -92,17 +91,8 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-
-    // Envoyer une notification à tous les clients connectés
-    sendNotificationToAll({
-      type: 'new_order',
-      order: {
-        id: data.draft_order.id,
-        name: data.draft_order.name
-      }
-    });
-
     return NextResponse.json(data);
+
   } catch (error) {
     console.error('Error creating draft order:', error);
     return NextResponse.json(
