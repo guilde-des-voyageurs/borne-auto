@@ -1,6 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { CartItem } from '../context/CartContext';
+
+interface CartSummaryModalProps {
+  items: { [variantId: string]: CartItem };
+  onClose: () => void;
+  onUpdateQuantity: (variantId: string, quantity: number) => void;
+  onRemoveItem: (variantId: string) => void;
+  onCreateDraftOrder: (options: { customer: Customer }) => Promise<void>;
+  totalWeight: number;
+  subtotal: number;
+  discount: number;
+  total: number;
+  discountPercentage: number;
+}
 
 interface Customer {
   firstName: string;
@@ -14,14 +28,19 @@ interface Customer {
   acceptsMarketing: boolean;
 }
 
-interface CartSummaryModalProps {
-  onClose: () => void;
-  onSubmit: (customer: Customer) => void;
-}
-
-export default function CartSummaryModal({ onClose, onSubmit }: CartSummaryModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<Customer>({
+export default function CartSummaryModal({
+  items,
+  onClose,
+  onUpdateQuantity,
+  onRemoveItem,
+  onCreateDraftOrder,
+  totalWeight,
+  subtotal,
+  discount,
+  total,
+  discountPercentage
+}: CartSummaryModalProps) {
+  const [customer, setCustomer] = useState<Customer>({
     firstName: '',
     lastName: '',
     email: '',
@@ -29,227 +48,177 @@ export default function CartSummaryModal({ onClose, onSubmit }: CartSummaryModal
     address1: '',
     city: '',
     postalCode: '',
-    country: 'FR',
-    acceptsMarketing: false,
+    country: 'France',
+    acceptsMarketing: false
   });
 
-  const handleFormDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }));
-  };
-
-  const isFormDataValid = () => {
-    return (
-      formData.firstName.trim() !== '' &&
-      formData.lastName.trim() !== '' &&
-      formData.email.trim() !== '' &&
-      formData.phone.trim() !== '' &&
-      formData.address1.trim() !== '' &&
-      formData.city.trim() !== '' &&
-      formData.postalCode.trim() !== '' &&
-      formData.country.trim() !== ''
-    );
-  };
-
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-
-      if (!isFormDataValid()) {
-        alert("Veuillez remplir tous les champs obligatoires");
-        setLoading(false);
-        return;
-      }
-
-      await onSubmit(formData);
-
-      onClose();
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      alert(error instanceof Error ? error.message : 'Une erreur est survenue');
-    } finally {
-      setLoading(false);
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onCreateDraftOrder({ customer });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Résumé de votre commande</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              ✕
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Résumé du panier</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            ✕
+          </button>
+        </div>
 
-          <div className="space-y-4 mb-6">
-            {/* Add items here */}
-          </div>
-
-          <div className="border-t pt-4 space-y-2">
-            <div className="flex justify-between">
-              <span>Sous-total :</span>
-              <span>0.00 €</span>
+        <div className="space-y-4">
+          {Object.entries(items).map(([variantId, item]) => (
+            <div key={variantId} className="flex items-center justify-between border-b pb-2">
+              <div>
+                <p className="font-medium">{item.title}</p>
+                <p className="text-sm text-gray-500">
+                  {item.weight} {item.weight_unit}
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => onUpdateQuantity(variantId, Math.max(0, item.quantity - 1))}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    -
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    onClick={() => onUpdateQuantity(variantId, item.quantity + 1)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    +
+                  </button>
+                </div>
+                <button
+                  onClick={() => onRemoveItem(variantId)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  Supprimer
+                </button>
+              </div>
             </div>
-            <div className="flex justify-between text-green-600">
-              <span>Remise (0%) :</span>
-              <span>-0.00 €</span>
-            </div>
+          ))}
+
+          <div className="space-y-2">
+            <p className="flex justify-between">
+              <span>Sous-total:</span>
+              <span>{subtotal.toFixed(2)} €</span>
+            </p>
+            <p className="flex justify-between">
+              <span>Remise ({discountPercentage}%):</span>
+              <span>-{discount.toFixed(2)} €</span>
+            </p>
+            <p className="flex justify-between font-bold">
+              <span>Total:</span>
+              <span>{total.toFixed(2)} €</span>
+            </p>
+            <p className="text-sm text-gray-500">
+              Poids total: {totalWeight.toFixed(2)} kg
+            </p>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Prénom
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Prénom</label>
                 <input
                   type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleFormDataChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  value={customer.firstName}
+                  onChange={(e) => setCustomer({ ...customer, firstName: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Nom
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Nom</label>
                 <input
                   type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleFormDataChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  value={customer.lastName}
+                  onChange={(e) => setCustomer({ ...customer, lastName: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
                 type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleFormDataChange}
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                value={customer.email}
+                onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Téléphone
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Téléphone</label>
               <input
                 type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleFormDataChange}
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                value={customer.phone}
+                onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Adresse
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Adresse</label>
               <input
                 type="text"
-                name="address1"
-                value={formData.address1}
-                onChange={handleFormDataChange}
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                value={customer.address1}
+                onChange={(e) => setCustomer({ ...customer, address1: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Ville
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Ville</label>
                 <input
                   type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleFormDataChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  value={customer.city}
+                  onChange={(e) => setCustomer({ ...customer, city: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Code postal
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Code postal</label>
                 <input
                   type="text"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleFormDataChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  value={customer.postalCode}
+                  onChange={(e) => setCustomer({ ...customer, postalCode: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Pays
-              </label>
-              <select
-                name="country"
-                value={formData.country}
-                onChange={handleFormDataChange}
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="FR">France</option>
-                <option value="BE">Belgique</option>
-                <option value="CH">Suisse</option>
-                <option value="LU">Luxembourg</option>
-              </select>
             </div>
 
             <div className="flex items-center">
               <input
                 type="checkbox"
-                name="acceptsMarketing"
-                checked={formData.acceptsMarketing}
-                onChange={handleFormDataChange}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                id="acceptsMarketing"
+                checked={customer.acceptsMarketing}
+                onChange={(e) => setCustomer({ ...customer, acceptsMarketing: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <label className="ml-2 block text-sm text-gray-900">
-                Je souhaite recevoir les actualités et offres par email
+              <label htmlFor="acceptsMarketing" className="ml-2 block text-sm text-gray-900">
+                Je souhaite recevoir des offres promotionnelles
               </label>
             </div>
 
-            <div className="flex justify-end space-x-4 mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                {loading ? 'Création...' : 'Créer la commande'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Valider la commande
+            </button>
           </form>
         </div>
       </div>

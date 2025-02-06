@@ -44,11 +44,24 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
 
   const excludedTypes = ['Sweatshirt Drummer'];
 
+  console.log('Produits reçus dans SalesTunnel:', products);
+
   const productTypes = Array.from(new Set(
     products
-      .map(product => product.product_type)
-      .filter(type => !excludedTypes.includes(type))
+      .map(product => {
+        console.log('Type de produit:', product.product_type);
+        return product.product_type;
+      })
+      .filter(type => {
+        const isExcluded = excludedTypes.includes(type);
+        if (isExcluded) {
+          console.log('Type exclu:', type);
+        }
+        return !isExcluded;
+      })
   ));
+
+  console.log('Types de produits finaux:', productTypes);
 
   const handleTypeSelect = (type: string) => {
     setSelectedType(type);
@@ -89,6 +102,15 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
     hidden: { opacity: 0 },
     visible: { opacity: 1 },
     exit: { opacity: 0 }
+  };
+
+  const getImageForType = (type: string): string => {
+    const imageMap: { [key: string]: string } = {
+      'Sweatshirt': '/images/sweatshirt.webp',
+      'T-shirt coupe femme': '/images/t-shirt-femme.webp',
+      'T-shirt unisexe': '/images/t-shirt-unisexe.webp'
+    };
+    return imageMap[type] || '/images/default-tshit-femme.png';
   };
 
   if (!mounted) {
@@ -135,11 +157,12 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
                 >
                   <div className="aspect-w-16 aspect-h-9">
                     <Image
-                      src={`/images/${type.toLowerCase()}.jpg`}
+                      src={getImageForType(type)}
                       alt={type}
                       width={300}
                       height={300}
                       className="w-full h-full object-cover"
+                      priority
                     />
                   </div>
                   <div className="p-4">
@@ -175,11 +198,12 @@ export default function SalesTunnel({ products }: SalesTunnelProps) {
                 >
                   <div className="aspect-w-16 aspect-h-9">
                     <Image
-                      src={product.images && product.images.length > 0 ? product.images[0].src : `/images/${product.product_type.toLowerCase()}.jpg`}
+                      src={product.images && product.images.length > 0 ? product.images[0].src : '/images/default-tshit-femme.png'}
                       alt={product.title}
                       width={300}
                       height={300}
                       className="w-full h-full object-cover"
+                      priority
                     />
                   </div>
                   <div className="p-4">

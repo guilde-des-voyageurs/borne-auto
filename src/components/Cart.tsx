@@ -1,6 +1,6 @@
 'use client';
 
-import { useCart } from '../context/CartContext';
+import { useCart, CartItem } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import CartSummaryModal from './CartSummaryModal';

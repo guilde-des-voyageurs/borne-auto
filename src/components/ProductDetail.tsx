@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getDefaultImageByProduct } from '../constants/images';
 import { useCart } from '../context/CartContext';
-import Image from 'next/image';
+import NextImage from 'next/image';
 
 interface ProductVariant {
   id: string;
@@ -32,9 +32,9 @@ interface ProductDetailProps {
 }
 
 // Fonction utilitaire pour précharger une image
-const preloadImage = (src: string) => {
+const preloadImage = (src: string): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const image = new Image();
+    const image = new Image(0, 0);
     image.onload = () => resolve(src);
     image.onerror = reject;
     image.src = src;
@@ -151,32 +151,28 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
 
   const handleAddToCart = () => {
     if (selectedVariantId) {
-      console.log('Variant sélectionnée:', selectedVariantId);
+      const selectedVariant = product.variants.find(v => v.id === selectedVariantId);
       
-      const variantId = selectedVariantId;
-      
-      dispatch({
-        type: 'ADD_ITEM',
-        payload: {
-          variantId,
-          title: product.title,
-          variantTitle: `${selectedColor} - ${selectedSize}`,
-          price: product.variants.find(v => v.id === selectedVariantId)?.price,
-          image: currentImage,
-          quantity: 1,
-          weight: product.variants.find(v => v.id === selectedVariantId)?.weight,
-          weight_unit: product.variants.find(v => v.id === selectedVariantId)?.weight_unit
-        }
-      });
+      if (selectedVariant) {
+        dispatch({
+          type: 'ADD_ITEM',
+          payload: {
+            variantId: selectedVariantId,
+            title: product.title,
+            variant: `${selectedColor} - ${selectedSize}`,
+            price: selectedVariant.price,
+            quantity: 1,
+            weight: selectedVariant.weight,
+            weight_unit: selectedVariant.weight_unit
+          }
+        });
 
-      // Log pour déboguer
-      console.log('Image envoyée à SuccessSlide:', currentImage);
-
-      onProductAdded({
-        productTitle: product.title,
-        productImage: currentImage,
-        variant: `${selectedColor} - ${selectedSize}`
-      });
+        onProductAdded({
+          productTitle: product.title,
+          productImage: currentImage,
+          variant: `${selectedColor} - ${selectedSize}`
+        });
+      }
     }
   };
 
@@ -189,9 +185,11 @@ export default function ProductDetail({ product, onProductAdded }: ProductDetail
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
-        <Image
+        <NextImage
           src={currentImage}
           alt={product.title}
+          width={500}
+          height={500}
           className={`max-h-full w-auto object-contain rounded-lg transition-opacity duration-300 ${
             isImageLoading ? 'opacity-0' : 'opacity-100'
           }`}
